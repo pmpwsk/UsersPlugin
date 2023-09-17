@@ -26,9 +26,11 @@ Once installed, add the following things to your program start code:
 - Create a new object of the plugin: <code>UsersPlugin usersPlugin = new();</code>
 - Map the plugin to a path of your choosing (like any/account): <code>PluginManager.Map("any/account", usersPlugin);</code>
 
-- You can do all that with a single line of code before starting the WF server:<br/><code>PluginManager.Map("any/account", new uwap.WebFramework.Plugins.UsersPlugin());</code>
+You can do all that with a single line of code before starting the WF server:<br/><code>PluginManager.Map("any/account", new uwap.WebFramework.Plugins.UsersPlugin());</code>
 
-Plans for the future
+If you map the plugin to a path that isn't <code>/account</code>, you need to change the following properties in <code>AccountManager.Settings</code> accordingly:<br /><code>TwoFactorPath = "/account/2fa"</code><br /><code>MailVerifyPath = "/account/verify"</code><br /><code>LoginAllowedPaths = new[] {"/account/logout"}</code><br /><code>LoginPath = "/account/login"</code>
+
+## Plans for the future
 - New theme settings (design+background+accent+font instead of fully preset themes)
 - Making the worker delete accounts that are past their date of scheduled deletion
 - More options for user management
