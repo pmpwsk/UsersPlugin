@@ -21,7 +21,7 @@ public partial class UsersPlugin : Plugin
             case "/username":
                 {
                     page.AddTitle("Username recovery", "Enter your email address below and you'll receive an email telling you your username.");
-                    request.AddScript();
+                    page.Scripts.Add(new Script($"{pathPrefix}/recovery/username.js"));
                     string command = $"Continue('{pathPrefix}/login{request.CurrentRedirectQuery()}')";
                     e.Add(new ContainerElement("Email:", new TextBox("Enter your email address...", null, "email", TextBoxRole.Email, command)));
                     e.Add(new ButtonElementJS("Continue", null, command));
@@ -45,7 +45,7 @@ public partial class UsersPlugin : Plugin
                                 {
                                     //setting a new password
                                     page.AddTitle("Password recovery", "Enter a new password and confirm it below.");
-                                    request.AddScript("set");
+                                    page.Scripts.Add(new Script($"{pathPrefix}/recovery/password-set.js"));
                                     string cmd = $"Continue('{pathPrefix}/login{request.CurrentRedirectQuery()}', '{token}')";
                                     e.Add(new ContainerElement(null, new List<IContent>
                                 {
@@ -63,7 +63,7 @@ public partial class UsersPlugin : Plugin
                     }
                     //requesting a password link
                     page.AddTitle("Password recovery", "Enter your email address below and you'll receive an email with a link to reset your password.");
-                    request.AddScript("request");
+                    page.Scripts.Add(new Script($"{pathPrefix}/recovery/password-request.js"));
                     string command = $"Continue('{pathPrefix}/login{request.CurrentRedirectQuery()}')";
                     e.Add(new ContainerElement("Email:", new TextBox("Enter your email address...", null, "email", TextBoxRole.Email, command)));
                     e.Add(new ButtonElementJS("Continue", null, command));
