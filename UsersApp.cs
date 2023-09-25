@@ -31,7 +31,7 @@ public partial class UsersPlugin : Plugin
                     e.Add(new HeadingElement(user.Username, new UList(
                         user.MailToken == null ? "Set up" : "Not set up",
                         user.MailAddress,
-                        user.TwoFactorEnabled ? "2FA enabled" : "2FA disabled",
+                        user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
                         user.Signup.ToShortDateString())));
                     if (request.User != null && user.Id != request.User.Id)
                     {

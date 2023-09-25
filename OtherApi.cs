@@ -16,7 +16,7 @@ public partial class UsersPlugin : Plugin
                     string username = request.Query["username"], password = request.Query["password"];
                     User? user = request.UserTable.Login(username, password, request);
                     await request.Write(user == null ? "no" : "ok");
-                    if (user != null && !user.TwoFactorEnabled) Presets.WarningMail(user, "New login", "Someone just successfully logged into your account.");
+                    if (user != null && !user.TwoFactor.TOTPEnabled()) Presets.WarningMail(user, "New login", "Someone just successfully logged into your account.");
                 }
                 else request.Status = 400;
                 break;
@@ -120,8 +120,8 @@ public partial class UsersPlugin : Plugin
                 {
                     string code = request.Query["code"];
                     User user = request.User;
-                    if (!user.TwoFactorEnabled) request.Status = 404;
-                    else if (user.Validate2FA(code, request))
+                    if (!user.TwoFactor.TOTPEnabled(out var totp)) request.Status = 404;
+                    else if (totp.Validate(code, request, true))
                     {
                         await request.Write("ok");
                         Presets.WarningMail(user, "New login", "Someone just successfully logged into your account.");

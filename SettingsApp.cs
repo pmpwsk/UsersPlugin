@@ -65,7 +65,7 @@ public partial class UsersPlugin : Plugin
                 {
                     page.Title = "2FA settings";
                     page.Scripts.Add(new Script($"{pathPrefix}/settings/2fa.js"));
-                    if (user.TwoFactor != null && user.TwoFactor.Verified)
+                    if (user.TwoFactor.TOTPEnabled())
                     { //2fa enabled and verified, show option to disable it
                         e.Add(new HeadingElement("2FA settings", "Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.<br />Warning: Other devices will remain logged in."));
                         e.Add(new ContainerElement(null, new List<IContent>
@@ -80,32 +80,34 @@ public partial class UsersPlugin : Plugin
                     }
                     else
                     { //2fa not fully enabled, show option to enable it
-                        user.TwoFactor = new TwoFactorData();
+                        user.TwoFactor.GenerateTOTP();
+                        if (user.TwoFactor.TOTP == null)
+                            break;
                         e.Add(new HeadingElement("2FA settings", "Two-factor authentication is disabled. Follow the steps below to enable it.<br />Warning: Other devices will remain logged in."));
                         e.Add(new ContainerElement("Private key:", new List<IContent>
-                    {
-                        new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
-                        new Image(user.TwoFactor.QRImageBase64Src(request.Domain, user.Username), "max-height: 15rem"),
-                        new Paragraph("Key: " + user.TwoFactor.SecretKey)
-                    }));
+                        {
+                            new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
+                            new Image(user.TwoFactor.TOTP.QRImageBase64Src(request.Domain, user.Username), "max-height: 15rem"),
+                            new Paragraph("Key: " + user.TwoFactor.TOTP.SecretKey)
+                        }));
                         e.Add(new ContainerElement("Recovery codes:", new List<IContent>
-                    {
-                        new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", user.TwoFactor.Recovery))
-                    })
+                        {
+                            new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", user.TwoFactor.TOTP.Recovery))
+                        })
                         {
                             Buttons = new List<IButton>
-                    {
-                        new Button("Download", $"/dl{pathPrefix}/2fa-recovery", newTab: true)
-                    }
+                        {
+                            new Button("Download", $"/dl{pathPrefix}/2fa-recovery", newTab: true)
+                        }
                         });
                         e.Add(new ContainerElement("Confirm:", new List<IContent>
-                    {
-                        new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
-                        new Heading("Password:"),
-                        new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('enable')"),
-                        new Heading("2FA code:"),
-                        new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
-                    }));
+                        {
+                            new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
+                            new Heading("Password:"),
+                            new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('enable')"),
+                            new Heading("2FA code:"),
+                            new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
+                        }));
                         e.Add(new ButtonElementJS("Enable", null, "Continue('enable')"));
                         Presets.AddError(page);
                     }

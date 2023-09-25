@@ -18,29 +18,27 @@ public partial class UsersPlugin : Plugin
                 else
                 {
                     string method = request.Query["method"], code = request.Query["code"], password = request.Query["password"];
-                    if (user.TwoFactor == null)
+                    if (user.TwoFactor.TOTP == null)
                         await request.Write("2FA not enabled.");
                     else if (!user.ValidatePassword(password, request))
                         await request.Write("no");
-                    else if (method == "enable" && user.TwoFactor.Recovery.Contains(code))
-                        await request.Write("no");
-                    else if (!user.Validate2FA(code, request))
+                    else if (!user.TwoFactor.TOTP.Validate(code, request, method != "enable"))
                         await request.Write("no");
                     else
                     {
                         switch (method)
                         {
                             case "enable":
-                                if (user.TwoFactor.Verified) await request.Write("2FA already enabled.");
+                                if (user.TwoFactor.TOTP.Verified) await request.Write("2FA already enabled.");
                                 else
                                 {
-                                    user.Verify2FA();
+                                    user.TwoFactor.TOTP.Verify();
                                     Presets.WarningMail(user, "2FA enabled", "Two-factor authentication has just been enabled.");
                                     await request.Write("ok");
                                 }
                                 break;
                             case "disable":
-                                user.TwoFactor = null;
+                                user.TwoFactor.DisableTOTP();
                                 Presets.WarningMail(user, "2FA disabled", "Two-factor authentication has just been disabled.");
                                 await request.Write("ok");
                                 break;
