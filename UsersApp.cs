@@ -28,7 +28,7 @@ public partial class UsersPlugin : Plugin
                     }
                     page.Scripts.Add(new Script($"{pathPrefix}/users-view.js"));
                     User user = userTable[id];
-                    e.Add(new HeadingElement(user.Username, new UList(
+                    e.Add(new HeadingElement(user.Username, new BulletList(
                         user.MailToken == null ? "Set up" : "Not set up",
                         user.MailAddress,
                         user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
