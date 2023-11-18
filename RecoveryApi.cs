@@ -19,7 +19,7 @@ public partial class UsersPlugin : Plugin
                     }
                     string email = request.Query["email"];
                     User? user = request.UserTable.FindByMailAddress(email);
-                    if (user == null || user.Settings.ContainsKey("Delete"))
+                    if (user == null)
                     {
                         AccountManager.ReportFailedAuth(request.Context);
                         await request.Write("no");
@@ -34,7 +34,7 @@ public partial class UsersPlugin : Plugin
                 {
                     string email = request.Query["email"];
                     User? user = request.UserTable.FindByMailAddress(email);
-                    if (user == null || user.Settings.ContainsKey("Delete"))
+                        if (user == null)
                     {
                         AccountManager.ReportFailedAuth(request.Context);
                         await request.Write("no");
