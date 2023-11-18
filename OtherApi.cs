@@ -11,46 +11,47 @@ public partial class UsersPlugin : Plugin
         {
             case "/login":
                 {
-                if (await AlreadyLoggedIn(request)) break;
+                    if (await AlreadyLoggedIn(request)) break;
                     if (request.Query.TryGetValue("username", out var username) && request.Query.TryGetValue("password", out var password))
-                {
-                    User? user = request.UserTable.Login(username, password, request);
+                    {
+                        User? user = request.UserTable.Login(username, password, request);
                         if (user != null)
                         {
+                            user.Settings.Delete("Delete");
                             if (!user.TwoFactor.TOTPEnabled())
                                 Presets.WarningMail(user, "New login", "Someone just successfully logged into your account.");
                             await request.Write("ok");
-                }
+                        }
                         else await request.Write("no");
                     }
-                else request.Status = 400;
+                    else request.Status = 400;
                 }
                 break;
             case "/register":
                 {
-                if (await AlreadyLoggedIn(request)) break;
+                    if (await AlreadyLoggedIn(request)) break;
                     if (request.Query.TryGetValue("username", out var username) && request.Query.TryGetValue("email", out var email) && request.Query.TryGetValue("password", out var password))
-                {
-                    try
                     {
-                        User user = request.UserTable.Register(username, email, password, request);
-                        Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
-                        await request.Write("ok");
-                    }
-                    catch (Exception ex)
-                    {
-                        await request.Write(ex.Message switch
+                        try
                         {
-                            "Invalid username format." => "bad-username",
-                            "Invalid mail address format." => "bad-email",
-                            "Invalid password format." => "bad-password",
-                            "Another user with the provided username already exists." => "username-exists",
-                            "Another user with the provided email address already exists." => "email-exists",
-                            _ => "Error 500: Internal server error."
-                        });
+                            User user = request.UserTable.Register(username, email, password, request);
+                            Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                            await request.Write("ok");
+                        }
+                        catch (Exception ex)
+                        {
+                            await request.Write(ex.Message switch
+                            {
+                                "Invalid username format." => "bad-username",
+                                "Invalid mail address format." => "bad-email",
+                                "Invalid password format." => "bad-password",
+                                "Another user with the provided username already exists." => "username-exists",
+                                "Another user with the provided email address already exists." => "email-exists",
+                                _ => "Error 500: Internal server error."
+                            });
+                        }
                     }
-                }
-                else request.Status = 400;
+                    else request.Status = 400;
                 }
                 break;
             case "/verify":
@@ -64,9 +65,9 @@ public partial class UsersPlugin : Plugin
                     else if (!request.Query.TryGetValue("code", out var code))
                         request.Status = 400;
                     else if (request.User.VerifyMail(code, request))
-                            await request.Write("ok");
-                        else await request.Write("Invalid code.");
-                    }
+                        await request.Write("ok");
+                    else await request.Write("Invalid code.");
+                }
                 break;
             case "/verify-change":
                 {
@@ -108,9 +109,9 @@ public partial class UsersPlugin : Plugin
             case "/2fa":
                 {
                     if (request.LoginState != LoginState.Needs2FA)
-                    await request.Write("User does not need 2FA verification at the moment.");
+                        await request.Write("User does not need 2FA verification at the moment.");
                     else if (!request.Query.TryGetValue("code", out var code))
-                    request.Status = 400;
+                        request.Status = 400;
                     else if (!request.User.TwoFactor.TOTPEnabled(out var totp))
                         request.Status = 404;
                     else if (totp.Validate(code, request, true))
