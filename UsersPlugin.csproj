@@ -23,7 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="uwap.WebFramework" Version="1.5.0" />
+    <PackageReference Include="uwap.WebFramework" Version="1.5.2" />
   </ItemGroup>
 
   <ItemGroup>
