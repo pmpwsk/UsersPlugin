@@ -183,10 +183,9 @@ public partial class UsersPlugin : Plugin
                     if (!await request.Auth(user))
                         break;
                     request.Cookies.Delete("AuthToken");
-                    user.SetPassword(null);
                     user.Auth.DeleteAll();
                     user.Settings["Delete"] = DateTime.UtcNow.Ticks.ToString();
-                    Presets.WarningMail(user, "Account deletion", "You just deleted your account. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
+                    Presets.WarningMail(user, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
                     await request.Write("ok");
                 }
                 break;
