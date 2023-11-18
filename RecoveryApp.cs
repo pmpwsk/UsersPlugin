@@ -1,5 +1,4 @@
-﻿using uwap.WebFramework.Accounts;
-using uwap.WebFramework.Elements;
+﻿using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
@@ -30,35 +29,26 @@ public partial class UsersPlugin : Plugin
                 break;
             case "/password":
                 {
-                    if (request.Query.ContainsKey("token"))
+                    if (request.Query.TryGetValue("token", out var token) && token.Length == 30)
                     {
-                        string token = request.Query["token"];
-                        if (token.Length == 30)
+                        string id = token.Remove(12);
+                        string code = token.Remove(0, 12);
+                        if (request.UserTable.TryGetValue(id, out var user) && user.Settings.TryGet("PasswordReset") == code)
                         {
-                            string id = token.Remove(12);
-                            string code = token.Remove(0, 12);
-                            var users = request.UserTable;
-                            if (users.ContainsKey(id))
-                            {
-                                User user = users[id];
-                                if (user.Settings.ContainsKey("PasswordReset") && user.Settings["PasswordReset"] == code)
-                                {
-                                    //setting a new password
-                                    page.AddTitle("Password recovery", "Enter a new password and confirm it below.");
-                                    page.Scripts.Add(new Script($"{pathPrefix}/recovery/password-set.js"));
-                                    string cmd = $"Continue('{pathPrefix}/login{request.CurrentRedirectQuery()}', '{token}')";
-                                    e.Add(new ContainerElement(null, new List<IContent>
-                                {
-                                    new Heading("New password:"),
-                                    new TextBox("Enter a password...", null, "password1", TextBoxRole.NewPassword, cmd),
-                                    new Heading("Confirm password:"),
-                                    new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, cmd)
-                                }));
-                                    e.Add(new ButtonElementJS("Continue", null, cmd));
-                                    page.AddError();
-                                    break;
-                                }
-                            }
+                            //setting a new password
+                            page.AddTitle("Password recovery", "Enter a new password and confirm it below.");
+                            page.Scripts.Add(new Script($"{pathPrefix}/recovery/password-set.js"));
+                            string cmd = $"Continue('{pathPrefix}/login{request.CurrentRedirectQuery()}', '{token}')";
+                            e.Add(new ContainerElement(null,
+                            [
+                                new Heading("New password:"),
+                                new TextBox("Enter a password...", null, "password1", TextBoxRole.NewPassword, cmd),
+                                new Heading("Confirm password:"),
+                                new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, cmd)
+                            ]));
+                            e.Add(new ButtonElementJS("Continue", null, cmd));
+                            page.AddError();
+                            break;
                         }
                     }
                     //requesting a password link

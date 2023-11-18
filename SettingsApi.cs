@@ -9,86 +9,81 @@ public partial class UsersPlugin : Plugin
     public static async Task Settings(ApiRequest request, string path, string pathPrefix)
     {
         if (await NotLoggedIn(request)) return;
-        User user = request.User ?? throw new Exception("Not logged in.");
+        User user = request.User;
         switch (path)
         {
             case "/2fa":
-                if (!new[] { "method", "code", "password" }.All(x => request.Query.ContainsKey(x)))
-                    request.Status = 400;
-                else
                 {
-                    string method = request.Query["method"], code = request.Query["code"], password = request.Query["password"];
-                    if (user.TwoFactor.TOTP == null)
-                        await request.Write("2FA not enabled.");
-                    else if (!user.ValidatePassword(password, request))
-                        await request.Write("no");
-                    else if (!user.TwoFactor.TOTP.Validate(code, request, method != "enable"))
-                        await request.Write("no");
-                    else
+                    if (request.Query.TryGetValue("method", out var method) && request.Query.TryGetValue("code", out var code) && request.Query.TryGetValue("password", out var password))
                     {
-                        switch (method)
+                        if (user.TwoFactor.TOTP == null)
+                            await request.Write("2FA not enabled.");
+                        else if (!user.ValidatePassword(password, request))
+                            await request.Write("no");
+                        else if (!user.TwoFactor.TOTP.Validate(code, request, method != "enable"))
+                            await request.Write("no");
+                        else
                         {
-                            case "enable":
-                                if (user.TwoFactor.TOTP.Verified) await request.Write("2FA already enabled.");
-                                else
-                                {
-                                    user.TwoFactor.TOTP.Verify();
-                                    Presets.WarningMail(user, "2FA enabled", "Two-factor authentication has just been enabled.");
+                            switch (method)
+                            {
+                                case "enable":
+                                    if (user.TwoFactor.TOTP.Verified) await request.Write("2FA already enabled.");
+                                    else
+                                    {
+                                        user.TwoFactor.TOTP.Verify();
+                                        Presets.WarningMail(user, "2FA enabled", "Two-factor authentication has just been enabled.");
+                                        await request.Write("ok");
+                                    }
+                                    break;
+                                case "disable":
+                                    user.TwoFactor.DisableTOTP();
+                                    Presets.WarningMail(user, "2FA disabled", "Two-factor authentication has just been disabled.");
                                     await request.Write("ok");
-                                }
-                                break;
-                            case "disable":
-                                user.TwoFactor.DisableTOTP();
-                                Presets.WarningMail(user, "2FA disabled", "Two-factor authentication has just been disabled.");
-                                await request.Write("ok");
-                                break;
-                            default:
-                                request.Status = 400;
-                                break;
+                                    break;
+                                default:
+                                    request.Status = 400;
+                                    break;
+                            }
                         }
                     }
+                    else request.Status = 400;
                 }
                 break;
             case "/theme":
                 {
-                    if (!request.Query.ContainsKey("name"))
+                    if (request.Query.TryGetValue("name", out var name) && Presets.Themes.Contains(name))
                     {
-                        request.Status = 400;
-                        break;
+                        if (name != Presets.ThemeName(request))
+                            user.Settings["Theme"] = name;
                     }
-                    string name = request.Query["name"];
-                    if (!Presets.Themes.Contains(name))
-                    {
-                        request.Status = 400;
-                        break;
-                    }
-                    if (name != Presets.ThemeName(request))
-                        user.Settings["Theme"] = name;
+                    else request.Status = 400;
                 }
                 break;
             case "/username":
                 {
-                    if (!request.Query.ContainsKey("username")) { request.Status = 400; }
-                    else if (await request.Auth(user))
+                    if (!request.Query.TryGetValue("username", out var username))
                     {
-                        string username = request.Query["username"];
-                        try
+                        request.Status = 400;
+                        break;
+                    }
+                    if (!await request.Auth(user))
+                        break;
+                    try
+                    {
+                        string oldUsername = user.Username;
+                        user.SetUsername(username, request.UserTable);
+                        Presets.WarningMail(user, "Username changed", $"Your username was just changed from {oldUsername} to {username}.");
+                        await request.Write("ok");
+                    }
+                    catch (Exception ex)
+                    {
+                        await request.Write(ex.Message switch
                         {
-                            string oldUsername = user.Username;
-                            user.SetUsername(username, request.UserTable);
-                            Presets.WarningMail(user, "Username changed", $"Your username was just changed from {oldUsername} to {username}.");
-                            await request.Write("ok");
-                        }
-                        catch (Exception ex)
-                        {
-                            await request.Write(ex.Message switch
-                            {
-                                "Invalid username format." => "bad",
-                                "Another user with the provided username already exists." => "exists",
-                                "The provided username is the same as the old one." => "same",
-                                _ => "error"
-                            });
-                        }
+                            "Invalid username format." => "bad",
+                            "Another user with the provided username already exists." => "exists",
+                            "The provided username is the same as the old one." => "same",
+                            _ => "error"
+                        });
                     }
                 }
                 break;
@@ -96,100 +91,102 @@ public partial class UsersPlugin : Plugin
                 {
                     if (request.Query.TryGet("action") == "cancel")
                     {
-                        if (user.Settings.ContainsKey("PasswordReset"))
-                            user.Settings.Delete("PasswordReset");
+                        user.Settings.Delete("PasswordReset");
                         break;
                     }
-                    if (!request.Query.ContainsKey("new-password")) { request.Status = 400; }
-                    else if (await request.Auth(user))
+                    if (!request.Query.TryGetValue("new-password", out var password))
                     {
-                        string password = request.Query["new-password"];
-                        try
+                        request.Status = 400;
+                        break;
+                    }
+                    if (!await request.Auth(user))
+                        break;
+                    try
+                    {
+                        user.SetPassword(password);
+                        Presets.WarningMail(user, "Password changed", "Your password was just changed.");
+                        await request.Write("ok");
+                    }
+                    catch (Exception ex)
+                    {
+                        await request.Write(ex.Message switch
                         {
-                            user.SetPassword(password);
-                            Presets.WarningMail(user, "Password changed", "Your password was just changed.");
-                            await request.Write("ok");
-                        }
-                        catch (Exception ex)
-                        {
-                            await request.Write(ex.Message switch
-                            {
-                                "Invalid password format." => "bad",
-                                "The provided password is the same as the old one." => "same",
-                                _ => "error"
-                            });
-                        }
+                            "Invalid password format." => "bad",
+                            "The provided password is the same as the old one." => "same",
+                            _ => "error"
+                        });
                     }
                 }
                 break;
             case "/email":
-                if (user.Settings.ContainsKey("EmailChange"))
                 {
-                    string[] setting = user.Settings["EmailChange"].Split('&');
-                    string mail = HttpUtility.UrlDecode(setting[0]);
-                    string code = setting[1];
-
-                    if (request.Query.TryGet("resend") == "please")
+                    if (user.Settings.TryGetValue("EmailChange", out var settingRaw))
                     {
-                        Presets.WarningMail(user, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", mail);
-                    }
-                    else if (request.Query.ContainsKey("code"))
-                    {
-                        if (request.Query["code"] != code)
+                        string[] setting = settingRaw.Split('&');
+                        string mail = HttpUtility.UrlDecode(setting[0]);
+                        string existingCode = setting[1];
+                        if (request.Query.TryGet("resend") == "please")
+                            Presets.WarningMail(user, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
+                        else if (request.Query.TryGetValue("code", out var code))
                         {
-                            AccountManager.ReportFailedAuth(request.Context);
-                            await request.Write("no");
-                            break;
-                        }
-
-                        try
-                        {
-                            string oldMail = user.MailAddress;
-                            user.SetMailAddress(mail, request.UserTable);
-                            Presets.WarningMail(user, "Email changed", $"Your email was just changed from {oldMail} to {mail}.", oldMail);
-                            user.Settings.Delete("EmailChange");
-                            await request.Write("ok");
-                        }
-                        catch (Exception ex)
-                        {
-                            await request.Write(ex.Message switch
+                            if (code != existingCode)
                             {
-                                "Another user with the provided mail address already exists." => "exists",
-                                "The provided mail address is the same as the old one." => "same",
-                                "Invalid mail address format." => "bad",
-                                _ => "error"
-                            });
+                                AccountManager.ReportFailedAuth(request.Context);
+                                await request.Write("no");
+                                break;
+                            }
+                            try
+                            {
+                                string oldMail = user.MailAddress;
+                                user.SetMailAddress(mail, request.UserTable);
+                                Presets.WarningMail(user, "Email changed", $"Your email was just changed from {oldMail} to {mail}.", oldMail);
+                                user.Settings.Delete("EmailChange");
+                                await request.Write("ok");
+                            }
+                            catch (Exception ex)
+                            {
+                                await request.Write(ex.Message switch
+                                {
+                                    "Another user with the provided mail address already exists." => "exists",
+                                    "The provided mail address is the same as the old one." => "same",
+                                    "Invalid mail address format." => "bad",
+                                    _ => "error"
+                                });
+                            }
                         }
+                        else request.Status = 400;
                     }
-                    else request.Status = 400;
-                }
-                else
-                {
-                    if (await request.Auth(user))
+                    else
                     {
-                        if (!request.Query.ContainsKey("email")) { request.Status = 400; break; }
-                        string mail = request.Query["email"];
-                        if (user.MailAddress == mail) await request.Write("same");
-                        else if (!AccountManager.CheckMailAddressFormat(mail)) await request.Write("bad");
-                        else if (request.UserTable.FindByMailAddress(mail) != null) await request.Write("exists");
+                        if (!await request.Auth(user))
+                            break;
+                        if (!request.Query.TryGetValue("email", out var email))
+                            request.Status = 400;
+                        else if (user.MailAddress == email)
+                            await request.Write("same");
+                        else if (!AccountManager.CheckMailAddressFormat(email))
+                            await request.Write("bad");
+                        else if (request.UserTable.FindByMailAddress(email) != null)
+                            await request.Write("exists");
                         else
                         {
                             string code = Parsers.RandomString(10);
-                            user.Settings["EmailChange"] = $"{HttpUtility.UrlEncode(mail)}&{code}";
-                            Presets.WarningMail(user, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", mail);
+                            user.Settings["EmailChange"] = $"{HttpUtility.UrlEncode(email)}&{code}";
+                            Presets.WarningMail(user, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
                             await request.Write("ok");
                         }
                     }
                 }
                 break;
             case "/delete":
-                if (await request.Auth(user))
                 {
+                    if (!await request.Auth(user))
+                        break;
                     request.Cookies.Delete("AuthToken");
                     user.SetPassword(null);
                     user.Auth.DeleteAll();
                     user.Settings["Delete"] = DateTime.UtcNow.Ticks.ToString();
-                    Presets.WarningMail(user, "Account deletion", "You just deleted your account. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account or want us to delete your data immediately, please contact us by replying to this email.");
+                    Presets.WarningMail(user, "Account deletion", "You just deleted your account. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
                     await request.Write("ok");
                 }
                 break;

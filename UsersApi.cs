@@ -14,58 +14,44 @@ public partial class UsersPlugin : Plugin
         switch (path)
         {
             case "/set-setting":
-                if (!request.Query.ContainsKeys("id", "key", "value"))
                 {
-                    request.Status = 400;
-                    break;
-                }
-                else
-                {
-                    string id = request.Query["id"], key = request.Query["key"], value = request.Query["value"];
-                    var userTable = request.UserTable;
-                    if (!userTable.ContainsKey(id))
+                    if (request.Query.TryGetValue("id", out var id) && request.Query.TryGetValue("key", out var key) && request.Query.TryGetValue("value", out var value))
                     {
-                        request.Status = 404;
-                        break;
+                        if (!request.UserTable.TryGetValue(id, out var user))
+                        {
+                            request.Status = 404;
+                            break;
+                        }
+                        user.Settings[key] = value;
+                        await request.Write("ok");
                     }
-                    User user = userTable[id];
-                    user.Settings[key] = value;
-                    await request.Write("ok");
+                    else request.Status = 400;
                 }
                 break;
             case "/delete-setting":
-                if (!request.Query.ContainsKeys("id", "key"))
                 {
-                    request.Status = 400;
-                    break;
-                }
-                else
-                {
-                    string id = request.Query["id"], key = request.Query["key"];
-                    var userTable = request.UserTable;
-                    if (!userTable.ContainsKey(id))
+                    if (request.Query.TryGetValue("id", out var id) && request.Query.TryGetValue("key", out var key))
                     {
-                        request.Status = 404;
-                        break;
+                        if (!request.UserTable.TryGetValue(id, out var user))
+                        {
+                            request.Status = 404;
+                            break;
+                        }
+                        user.Settings.Delete(key);
+                        await request.Write("ok");
                     }
-                    User user = userTable[id];
-                    user.Settings.Delete(key);
-                    await request.Write("ok");
+                    else request.Status = 400;
                 }
                 break;
             case "/delete-user":
-                if (!request.Query.ContainsKeys("id"))
                 {
-                    request.Status = 400;
-                }
-                else
-                {
-                    string id = request.Query["id"];
-                    var userTable = request.UserTable;
-
-                    if (userTable.Delete(id))
-                        await request.Write("ok");
-                    else request.Status = 404;
+                    if (request.Query.TryGetValue("id", out var id))
+                    {
+                        if (request.UserTable.Delete(id))
+                            await request.Write("ok");
+                        else request.Status = 404;
+                    }
+                    else request.Status = 400;
                 }
                 break;
             default:

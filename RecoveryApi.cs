@@ -12,12 +12,11 @@ public partial class UsersPlugin : Plugin
         {
             case "/username":
                 {
-                    if (!request.Query.ContainsKey("email"))
+                    if (!request.Query.TryGetValue("email", out var email))
                     {
                         request.Status = 400;
                         break;
                     }
-                    string email = request.Query["email"];
                     User? user = request.UserTable.FindByMailAddress(email);
                     if (user == null)
                     {
@@ -30,67 +29,56 @@ public partial class UsersPlugin : Plugin
                 }
                 break;
             case "/password":
-                if (request.Query.ContainsKey("email"))
                 {
-                    string email = request.Query["email"];
-                    User? user = request.UserTable.FindByMailAddress(email);
-                        if (user == null)
+                    if (request.Query.TryGetValue("email", out var email))
                     {
-                        AccountManager.ReportFailedAuth(request.Context);
-                        await request.Write("no");
-                        break;
+                        User? user = request.UserTable.FindByMailAddress(email);
+                        if (user == null)
+                        {
+                            AccountManager.ReportFailedAuth(request.Context);
+                            await request.Write("no");
+                            break;
+                        }
+                        string code = Parsers.RandomString(18);
+                        user.Settings["PasswordReset"] = code;
+                        string url = $"{request.Context.ProtoHost()}{pathPrefix}/recovery/password?token={user.Id}{code}";
+                        Presets.WarningMail(user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
+                        await request.Write("ok");
                     }
-                    string code = Parsers.RandomString(18);
-                    user.Settings["PasswordReset"] = code;
-                    string url = $"{request.Context.ProtoHost()}{pathPrefix}/recovery/password?token={user.Id}{code}";
-                    Presets.WarningMail(user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
-                    await request.Write("ok");
-                }
-                else if (request.Query.ContainsKeys("password", "token"))
-                {
-                    string token = request.Query["token"];
-                    if (token.Length == 30)
+                    else if (request.Query.TryGetValue("password", out var password) && request.Query.TryGetValue("token", out var token) && token.Length == 30)
                     {
                         string id = token.Remove(12);
                         string code = token.Remove(0, 12);
                         var users = request.UserTable;
-                        if (users.ContainsKey(id))
+                        if (users.TryGetValue(id, out var user) && user.Settings.TryGetValue("PasswordReset", out var existingCode))
                         {
-                            User user = users[id];
-                            if (user.Settings.ContainsKey("PasswordReset") && !user.Settings.ContainsKey("Delete"))
+                            if (existingCode != code)
                             {
-                                if (user.Settings["PasswordReset"] != code)
+                                AccountManager.ReportFailedAuth(request.Context);
+                                request.Status = 400;
+                                break;
+                            }
+                            try
+                            {
+                                user.SetPassword(password);
+                                Presets.WarningMail(user, "Password recovery", "Your password was just changed by recovery.");
+                                user.Settings.Delete("PasswordReset");
+                                await request.Write("ok");
+                            }
+                            catch (Exception ex)
+                            {
+                                await request.Write(ex.Message switch
                                 {
-                                    AccountManager.ReportFailedAuth(request.Context);
-                                }
-                                else
-                                {
-                                    string password = request.Query["password"];
-                                    try
-                                    {
-                                        user.SetPassword(password);
-                                        Presets.WarningMail(user, "Password recovery", "Your password was just changed by recovery.");
-                                        user.Settings.Delete("PasswordReset");
-                                        await request.Write("ok");
-                                        break;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        await request.Write(ex.Message switch
-                                        {
-                                            "Invalid password format." => "bad",
-                                            "The provided password is the same as the old one." => "same",
-                                            _ => "error"
-                                        });
-                                        break;
-                                    }
-                                }
+                                    "Invalid password format." => "bad",
+                                    "The provided password is the same as the old one." => "same",
+                                    _ => "error"
+                                });
                             }
                         }
+                        else request.Status = 400;
                     }
-                    request.Status = 400;
+                    else request.Status = 400;
                 }
-                else request.Status = 400;
                 break;
             default:
                 request.Status = 404;

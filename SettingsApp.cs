@@ -10,14 +10,12 @@ public partial class UsersPlugin : Plugin
     {
         if (NotLoggedIn(request)) return;
         request.Init(out Page page, out List<IPageElement> e);
-        User? user = request.User;
-        if (user == null) throw new Exception("Not logged in.");
+        User user = request.User;
         switch (path)
         {
             case "":
                 page.Title = "Settings";
                 e.Add(new HeadingElement("Settings", ""));
-                //e.Add(new ButtonElement("Notifications", null, $"{pathPrefix}/settings/notifications"));
                 e.Add(new ButtonElement("Theme", null, $"{pathPrefix}/settings/theme"));
                 e.Add(new ButtonElement("Username", null, $"{pathPrefix}/settings/username"));
                 e.Add(new ButtonElement("Email address", null, $"{pathPrefix}/settings/email"));
@@ -32,8 +30,8 @@ public partial class UsersPlugin : Plugin
                 string current = Presets.ThemeName(request);
                 foreach (string name in Presets.Themes)
                 {
-                    string title = name;
-                    string? text = null;
+                    string title;
+                    string? text;
                     switch (name)
                     {
                         case "code":
@@ -54,6 +52,7 @@ public partial class UsersPlugin : Plugin
                             break;
                         default:
                             title = name;
+                            text = null;
                             break;
                     }
                     if (name == current)
@@ -68,13 +67,13 @@ public partial class UsersPlugin : Plugin
                     if (user.TwoFactor.TOTPEnabled())
                     { //2fa enabled and verified, show option to disable it
                         e.Add(new HeadingElement("2FA settings", "Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.<br />Warning: Other devices will remain logged in."));
-                        e.Add(new ContainerElement(null, new List<IContent>
-                    {
-                        new Heading("Password:"),
-                        new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('disable')"),
-                        new Heading("2FA code / recovery:"),
-                        new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('disable')")
-                    }));
+                        e.Add(new ContainerElement(null,
+                        [
+                            new Heading("Password:"),
+                            new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('disable')"),
+                            new Heading("2FA code / recovery:"),
+                            new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('disable')")
+                        ]));
                         e.Add(new ButtonElementJS("Disable", null, "Continue('disable')"));
                         Presets.AddError(page);
                     }
@@ -84,30 +83,22 @@ public partial class UsersPlugin : Plugin
                         if (user.TwoFactor.TOTP == null)
                             break;
                         e.Add(new HeadingElement("2FA settings", "Two-factor authentication is disabled. Follow the steps below to enable it.<br />Warning: Other devices will remain logged in."));
-                        e.Add(new ContainerElement("Private key:", new List<IContent>
-                        {
+                        e.Add(new ContainerElement("Private key:",
+                        [
                             new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
                             new Image(user.TwoFactor.TOTP.QRImageBase64Src(request.Domain, user.Username), "max-height: 15rem"),
                             new Paragraph("Key: " + user.TwoFactor.TOTP.SecretKey)
-                        }));
-                        e.Add(new ContainerElement("Recovery codes:", new List<IContent>
-                        {
-                            new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", user.TwoFactor.TOTP.Recovery))
-                        })
-                        {
-                            Buttons = new List<IButton>
-                        {
-                            new Button("Download", $"/dl{pathPrefix}/2fa-recovery", newTab: true)
-                        }
-                        });
-                        e.Add(new ContainerElement("Confirm:", new List<IContent>
-                        {
+                        ]));
+                        e.Add(new ContainerElement("Recovery codes:", "Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", user.TwoFactor.TOTP.Recovery))
+                        { Button = new Button("Download", $"/dl{pathPrefix}/2fa-recovery", newTab: true) });
+                        e.Add(new ContainerElement("Confirm:",
+                        [
                             new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
                             new Heading("Password:"),
                             new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('enable')"),
                             new Heading("2FA code:"),
                             new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
-                        }));
+                        ]));
                         e.Add(new ButtonElementJS("Enable", null, "Continue('enable')"));
                         Presets.AddError(page);
                     }
@@ -128,21 +119,21 @@ public partial class UsersPlugin : Plugin
                 e.Add(new HeadingElement("Password settings", "Warning: Other devices will remain logged in."));
                 if (user.Settings.ContainsKey("PasswordReset"))
                     e.Add(new ContainerElement("Warning", "A password reset has been requested and a corresponding link has been sent to your email address.", "red")
-                    { Buttons = new List<IButton> { new ButtonJS("Cancel", "Cancel()", "red") } });
-                e.Add(new ContainerElement(null, new List<IContent>
-                {
+                    { Button = new ButtonJS("Cancel", "Cancel()", "red") });
+                e.Add(new ContainerElement(null,
+                [
                     new Heading("New password:"),
                     new TextBox("Enter a password...", null, "password1", TextBoxRole.NewPassword, "Continue()"),
                     new Heading("Confirm password:"),
                     new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, "Continue()")
-                }));
+                ]));
                 request.AddAuthElements();
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                 Presets.AddError(page);
                 break;
             case "/email":
                 page.Title = "Email settings";
-                if (user.Settings.ContainsKey("EmailChange"))
+                if (user.Settings.TryGetValue("EmailChange", out var settingRaw))
                 {
                     if (request.Query.TryGet("action") == "cancel")
                     {
@@ -150,15 +141,14 @@ public partial class UsersPlugin : Plugin
                         request.Redirect($"{pathPrefix}/settings/email");
                         break;
                     }
-
-                    string[] setting = user.Settings["EmailChange"].Split('&');
+                    string[] setting = settingRaw.Split('&');
                     string mail = HttpUtility.UrlDecode(setting[0]);
                     string code = setting[1];
                     page.Scripts.Add(new Script($"{pathPrefix}/settings/email-verify.js"));
                     e.Add(new HeadingElement("Email settings", $"You requested to change your email to '{mail}'. Please enter the verification code provided in the email we sent to that address here.")
-                    { Buttons = new List<IButton> { new Button("Cancel", $"{pathPrefix}/settings/email?action=cancel", "red") } });
+                    { Button = new Button("Cancel", $"{pathPrefix}/settings/email?action=cancel", "red") });
                     e.Add(new ContainerElement("Verification code", new TextBox("Enter the code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true))
-                    { Buttons = new List<IButton>() { new ButtonJS("Send again", "Resend()") } });
+                    { Button = new ButtonJS("Send again", "Resend()") });
                     e.Add(new ButtonElementJS("Change", null, "Continue()"));
                     Presets.AddError(page);
                 }
@@ -172,18 +162,14 @@ public partial class UsersPlugin : Plugin
                     Presets.AddError(page);
                 }
                 break;
-            /*case "/notifications":
-                page.Title = "Notification settings";
-                e.Add(new HeadingElement("Notification settings", "None of the apps in your library send any notifications."));
-                break;*/
             case "/delete":
                 page.Title = "Delete account";
                 page.Scripts.Add(new Script($"{pathPrefix}/settings/delete.js"));
-                e.Add(new HeadingElement("Delete account", new List<IContent>
-                {
+                e.Add(new HeadingElement("Delete account",
+                [
                     new Paragraph("We're very sad to see you go! If you're leaving because you've been experiencing issues, please let us know and we'll try our best to fix it. The goal of this project is to make your experience as nice as possible."),
-                    new Paragraph($"If you really want to delete your account, enter your password{(user.TwoFactor==null?"":" and 2FA code")} below.")
-                }));
+                    new Paragraph($"If you really want to delete your account, enter your password{(user.TwoFactor.TOTPEnabled()?" and 2FA code":"")} below.")
+                ]));
                 request.AddAuthElements();
                 e.Add(new ButtonElementJS("Delete account :(", null, "Continue()"));
                 Presets.AddError(page);

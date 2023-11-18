@@ -1,6 +1,4 @@
-﻿using uwap.WebFramework.Accounts;
-
-namespace uwap.WebFramework.Plugins;
+﻿namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
@@ -25,15 +23,15 @@ public partial class UsersPlugin : Plugin
 
     private async static Task<bool> AlreadyLoggedIn(ApiRequest request)
     {
-        if (request.User == null) return false;
-        else await request.Write("Already logged in.");
+        if (!request.HasUser) return false;
+        await request.Write("Already logged in.");
         return true;
     }
 
     private async static Task<bool> NotLoggedIn(ApiRequest request)
     {
-        if (request.LoginState == LoginState.LoggedIn) return false;
-        else await request.Write("Not logged in.");
+        if (request.LoggedIn) return false;
+        await request.Write("Not logged in.");
         return true;
     }
 }

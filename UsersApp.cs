@@ -16,45 +16,39 @@ public partial class UsersPlugin : Plugin
         switch(path)
         {
             case "":
-                page.Title = "Users";
-                var userTable = request.UserTable;
-                if (request.Query.ContainsKey("id"))
                 {
-                    string id = request.Query["id"];
-                    if (!userTable.ContainsKey(id))
+                    page.Title = "Users";
+                    if (request.Query.TryGetValue("id", out var id))
                     {
-                        request.Status = 404;
-                        break;
+                        if (!request.UserTable.TryGetValue(id, out var user))
+                        {
+                            request.Status = 404;
+                            break;
+                        }
+                        page.Scripts.Add(new Script($"{pathPrefix}/users-view.js"));
+                        e.Add(new HeadingElement(user.Username, new BulletList(
+                            user.MailToken == null ? "Set up" : "Not set up",
+                            user.MailAddress,
+                            user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
+                            user.Signup.ToShortDateString())));
+                        if (user.Id != request.User.Id)
+                            e.Add(new ButtonElementJS(null, "Delete forever", $"DeleteUser('{user.Id}')", null, "red", "delete"));
+                        e.Add(new ContainerElement(null,
+                        [
+                            new Heading("Key"),
+                            new TextBox("Enter a key...", null, "key", TextBoxRole.NoSpellcheck, $"Set('{id}')"),
+                            new Heading("Value"),
+                            new TextBox("Enter a value...", null, "value", TextBoxRole.NoSpellcheck, $"Set('{id}')")
+                        ])
+                        { Button = new ButtonJS("Set value", $"SetSetting('{id}')", "green") });
+                        page.AddError();
+                        foreach (var key in user.Settings.ListKeys())
+                            e.Add(new ContainerElement(key, user.Settings[key]) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
                     }
-                    page.Scripts.Add(new Script($"{pathPrefix}/users-view.js"));
-                    User user = userTable[id];
-                    e.Add(new HeadingElement(user.Username, new BulletList(
-                        user.MailToken == null ? "Set up" : "Not set up",
-                        user.MailAddress,
-                        user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
-                        user.Signup.ToShortDateString())));
-                    if (request.User != null && user.Id != request.User.Id)
+                    else
                     {
-                        e.Add(new ButtonElementJS(null, "Delete forever", $"DeleteUser('{user.Id}')", null, "red", "delete"));
-                    }
-                    e.Add(new ContainerElement(null, new List<IContent>
-                    {
-                        new Heading("Key"),
-                        new TextBox("Enter a key...", null, "key", TextBoxRole.NoSpellcheck, $"Set('{id}')"),
-                        new Heading("Value"),
-                        new TextBox("Enter a value...", null, "value", TextBoxRole.NoSpellcheck, $"Set('{id}')")
-                    })
-                    { Button = new ButtonJS("Set value", $"SetSetting('{id}')", "green") });
-                    page.AddError();
-                    foreach (var key in user.Settings.ListKeys())
-                        e.Add(new ContainerElement(key, user.Settings[key]) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
-                }
-                else
-                {
-                    var users = userTable.ListKeys().Select(x => userTable[x]);
-                    foreach (User user in users)
-                    {
-                        e.Add(new ButtonElement(user.Username, user.MailAddress, $"{pathPrefix}/users?id={user.Id}"));
+                        foreach (var kv in request.UserTable)
+                            e.Add(new ButtonElement(kv.Value.Username, kv.Value.MailAddress, $"{pathPrefix}/users?id={kv.Value.Id}"));
                     }
                 }
                 break;

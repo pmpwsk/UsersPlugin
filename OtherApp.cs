@@ -62,20 +62,8 @@ public partial class UsersPlugin : Plugin
             case "/verify":
                 {
                     page.Title = "Verify";
-                    if (request.LoginState == LoginState.LoggedIn)
-                    {
-                        request.Redirect(request.RedirectUrl);
-                        break;
-                    }
-                    if (request.LoginState != LoginState.NeedsMailVerification)
-                    {
-                        request.RedirectToLogin();
-                        break;
-                    }
-                    User? user = request.User;
-                    if (user == null) { request.Status = 500; break; }
-                    if (user.MailToken == null) request.Redirect(request.RedirectUrl);
-                    if (request.Query.ContainsKey("code") && user.VerifyMail(request.Query["code"], request))
+                    if (request.LoginState != LoginState.NeedsMailVerification || request.User.MailToken == null
+                        || (request.Query.ContainsKey("code") && request.User.VerifyMail(request.Query["code"], request)))
                     {
                         request.Redirect(request.RedirectUrl);
                         break;
@@ -85,11 +73,11 @@ public partial class UsersPlugin : Plugin
                     {
                         page.Scripts.Add(new Script($"{pathPrefix}/verify-change.js"));
                         e.Add(new HeadingElement("Change email address", ""));
-                        e.Add(new ContainerElement(null, new List<IContent>
-                        {
+                        e.Add(new ContainerElement(null,
+                        [
                             new Heading("Email:"),
-                            new TextBox("Enter your email address...", user.MailAddress, "email", onEnter: "Continue()", autofocus: true)
-                        }));
+                            new TextBox("Enter your email address...", request.User.MailAddress, "email", onEnter: "Continue()", autofocus: true)
+                        ]));
                         e.Add(new ButtonElementJS("Change", null, "Continue()"));
                         Presets.AddError(page);
                         e.Add(new ButtonElement(null, "Back", $"{pathPrefix}/verify" + request.CurrentRedirectQuery()));
@@ -98,12 +86,11 @@ public partial class UsersPlugin : Plugin
                     {
                         page.Scripts.Add(new Script($"{pathPrefix}/verify.js"));
                         e.Add(new HeadingElement("Mail verification", ""));
-                        e.Add(new ContainerElement(null, new List<IContent>
-                        {
+                        e.Add(new ContainerElement(null,
+                        [
                             new Heading("Verification code:"),
                             new TextBox("Enter the code...", null, "code", onEnter: "Continue()", autofocus: true)
-                        })
-                        { Buttons = new List<IButton>() { new ButtonJS("Send again", "Resend()") } });
+                        ]) { Buttons = [ new ButtonJS("Send again", "Resend()") ] });
                         e.Add(new ButtonElementJS("Continue", null, "Continue()"));
                         Presets.AddError(page);
                         string query = request.CurrentRedirectQuery();
