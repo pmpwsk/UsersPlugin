@@ -1,0 +1,8 @@
+@font-face {
+    font-family: 'ubuntu-mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url('[PATH_PREFIX]/fonts/ubuntu-mono.woff2') format('woff2'), url('[PATH_PREFIX]/fonts/ubuntu-mono.woff') format('woff'), url('[PATH_PREFIX]/fonts/ubuntu-mono.ttf') format('truetype'), url('[PATH_PREFIX]/fonts/ubuntu-mono.otf') format('otf'), url('[PATH_PREFIX]/fonts/ubuntu-mono.eot') format('embedded-opentype'), url('[PATH_PREFIX]/fonts/ubuntu-mono.svg') format('svg');
+    unicode-range: U+000-5FF;
+}
