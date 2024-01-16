@@ -2,21 +2,21 @@
 
 public partial class UsersPlugin : Plugin
 {
-    public override async Task Handle(ApiRequest request, string path, string pathPrefix)
+    public override async Task Handle(ApiRequest req, string path, string pathPrefix)
     {
         switch (Parsers.GetFirstSegment(path, out string rest))
         {
             case "settings":
-                await Settings(request, rest, pathPrefix);
+                await Settings(req, rest, pathPrefix);
                 break;
             case "recovery":
-                await Recovery(request, rest, pathPrefix);
+                await Recovery(req, rest, pathPrefix);
                 break;
             case "users":
-                await Users(request, rest, pathPrefix);
+                await Users(req, rest, pathPrefix);
                 break;
             default:
-                await Other(request, path, pathPrefix);
+                await Other(req, path, pathPrefix);
                 break;
         }
     }
