@@ -6,7 +6,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    public static async Task Settings(ApiRequest request, string path, string pathPrefix)
+    public async Task Settings(ApiRequest request, string path, string pathPrefix)
     {
         if (await NotLoggedIn(request)) return;
         User user = request.User;
