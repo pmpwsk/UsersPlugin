@@ -24,40 +24,15 @@ public partial class UsersPlugin : Plugin
                 e.Add(new ButtonElement("Delete account", null, $"{pathPrefix}/settings/delete"));
                 break;
             case "/theme":
-                page.Scripts.Add(new Script($"{pathPrefix}/settings/theme.js"));
-                page.Title = "Theme settings";
-                e.Add(new HeadingElement("Theme settings", ""));
-                string current = Presets.ThemeName(request);
-                foreach (string name in Presets.Themes)
                 {
-                    string title;
-                    string? text;
-                    switch (name)
-                    {
-                        case "code":
-                            title = "Code";
-                            text = "Black theme with green accents and a monospace font.";
-                            break;
-                        case "dark":
-                            title = "Dark";
-                            text = "Dark grey theme with violet accents.";
-                            break;
-                        case "light":
-                            title = "Light";
-                            text = "Light grey theme with blue accents.";
-                            break;
-                        case "white":
-                            title = "White";
-                            text = "White theme with violet accents.";
-                            break;
-                        default:
-                            title = name;
-                            text = null;
-                            break;
-                    }
-                    if (name == current)
-                        e.Add(new ContainerElement(title, text ?? "", "green"));
-                    else e.Add(new ButtonElementJS(title, text, $"Set('{name}')"));
+                    page.Scripts.Add(new Script($"{pathPrefix}/settings/theme.js"));
+                    page.Title = "Theme settings";
+                    e.Add(new HeadingElement("Theme settings", ""));
+                    ThemeFromQuery((request.LoggedIn && request.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? fontMono, out string background, out string accent, out string design);
+                    e.Add(new ContainerElement("Background", new Selector("background", background, [..Backgrounds]) { OnChange = "Save()" }));
+                    e.Add(new ContainerElement("Accent", new Selector("accent", accent, [..Accents]) { OnChange = "Save()" }));
+                    e.Add(new ContainerElement("Design", new Selector("design", design, [..Designs]) { OnChange = "Save()" }));
+                    e.Add(new ContainerElement("Font", new Selector("font", font, [..Fonts]) { OnChange = "Save()" }));
                 }
                 break;
             case "/2fa":
