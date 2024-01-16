@@ -15,6 +15,14 @@ public partial class UsersPlugin : Plugin
     public string DefaultAccent = "blue";
     public string DefaultDesign = "layers";
 
+
+    public Style GetStyle(IRequest request, out string fontUrl, string pathPrefix)
+    {
+        ThemeFromQuery((request.LoggedIn && request.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? fontMono, out string background, out string accent, out string design);
+        fontUrl = $"{pathPrefix}/fonts/{font}.woff2";
+        return new Style($"/api{pathPrefix}/theme.css?f={font}&b={background}&a={accent}&d={design}&t={Timestamp(font, fontMono, background, accent, design)}");
+    }
+
     private void ThemeFromQuery(string query, out string font, out string? fontMono, out string background, out string accent, out string design)
     {
         font = DefaultFont;
