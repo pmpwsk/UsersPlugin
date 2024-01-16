@@ -6,7 +6,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    public static void Settings(AppRequest request, string path, string pathPrefix)
+    public void Settings(AppRequest request, string path, string pathPrefix)
     {
         if (NotLoggedIn(request)) return;
         request.Init(out Page page, out List<IPageElement> e);
