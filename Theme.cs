@@ -15,6 +15,43 @@ public partial class UsersPlugin : Plugin
     public string DefaultAccent = "blue";
     public string DefaultDesign = "layers";
 
+    private void ThemeFromQuery(string query, out string font, out string? fontMono, out string background, out string accent, out string design)
+    {
+        font = DefaultFont;
+        background = DefaultBackground;
+        accent = DefaultAccent;
+        design = DefaultDesign;
+
+        if (query.StartsWith('?'))
+            foreach (string kv in query[1..].Split('&'))
+                if (kv.SplitAtFirst('=', out string key, out string value))
+                    switch (key)
+                    {
+                        case "f":
+                            if (Fonts.Contains(value))
+                                font = value;
+                            break;
+                        case "b":
+                            if (Backgrounds.Contains(value))
+                                background = value;
+                            break;
+                        case "a":
+                            if (Accents.Contains(value))
+                                accent = value;
+                            break;
+                        case "d":
+                            if (Designs.Contains(value))
+                                design = value;
+                            break;
+                    }
+
+        fontMono = font switch
+        {
+            "ubuntu-mono" => null,
+            _ => "ubuntu-mono"
+        };
+    }
+
     private string Timestamp(string font, string? fontMono, string background, string accent, string design)
         => ((string[])
         [
