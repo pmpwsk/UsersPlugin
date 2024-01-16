@@ -51,12 +51,8 @@ public partial class UsersPlugin : Plugin
                 break;
             case "/theme":
                 {
-                    if (request.Query.TryGetValue("name", out var name) && Presets.Themes.Contains(name))
-                    {
-                        if (name != Presets.ThemeName(request))
-                            user.Settings["Theme"] = name;
-                    }
-                    else request.Status = 400;
+                    ThemeFromQuery(request.Context.Request.QueryString.Value ?? "", out string font, out _, out string background, out string accent, out string design);
+                    request.User.Settings["Theme"] = $"?f={font}&b={background}&a={accent}&d={design}";
                 }
                 break;
             case "/username":
