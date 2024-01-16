@@ -14,4 +14,11 @@ public partial class UsersPlugin : Plugin
     public string DefaultBackground = "dark";
     public string DefaultAccent = "blue";
     public string DefaultDesign = "layers";
+
+    private static string AccentName(string accent, string background)
+        => $"{accent}-{background switch
+        {
+            "light" or "white" => "light",
+            "black" or "dark" or _ => "dark"
+        }}";
 }
