@@ -101,7 +101,7 @@ body {
 }
 
 code {
-    padding: 0.1rem 0.2rem;
+    padding: 0 0.2rem;
     border-radius: 0.4rem;
     font-family: var(--font-code);
     background: var(--layer);
