@@ -4,7 +4,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    private readonly HashSet<string> Fonts = ["ubuntu", "ubuntu-mono", "oxygen"];
+    private readonly HashSet<string> Fonts = ["ubuntu", "ubuntu-mono", "oxygen", "oxygen-mono"];
     private readonly HashSet<string> Backgrounds = ["black", "dark", "light", "white"];
     private readonly HashSet<string> Accents = ["green", "violet", "blue", "red"];
     private readonly HashSet<string> Designs = ["shadows", "layers", "flat", "no-css"];
