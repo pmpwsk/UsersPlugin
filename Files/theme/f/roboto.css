@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'roboto';
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url('[PATH_PREFIX]/fonts/roboto.woff2') format('woff2'), url('[PATH_PREFIX]/fonts/roboto.woff') format('woff'), url('[PATH_PREFIX]/fonts/roboto.ttf') format('truetype'), url('[PATH_PREFIX]/fonts/roboto.otf') format('otf'), url('[PATH_PREFIX]/fonts/roboto.eot') format('embedded-opentype'), url('[PATH_PREFIX]/fonts/roboto.svg') format('svg');
+    unicode-range: U+000-5FF;
+    size-adjust: 95%;
+}
