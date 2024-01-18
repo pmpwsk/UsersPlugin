@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'roboto-mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url('[PATH_PREFIX]/fonts/roboto-mono.woff2') format('woff2'), url('[PATH_PREFIX]/fonts/roboto-mono.woff') format('woff'), url('[PATH_PREFIX]/fonts/roboto-mono.ttf') format('truetype'), url('[PATH_PREFIX]/fonts/roboto-mono.otf') format('otf'), url('[PATH_PREFIX]/fonts/roboto-mono.eot') format('embedded-opentype'), url('[PATH_PREFIX]/fonts/roboto-mono.svg') format('svg');
+    unicode-range: U+000-5FF;
+    size-adjust: 85%;
+}
