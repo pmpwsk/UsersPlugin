@@ -4,7 +4,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    private readonly HashSet<string> Fonts = ["ubuntu", "ubuntu-mono", "oxygen", "oxygen-mono"];
+    private readonly HashSet<string> Fonts = ["ubuntu", "ubuntu-mono", "roboto", "roboto-mono"];
     private readonly HashSet<string> Backgrounds = ["black", "dark", "light", "white"];
     private readonly HashSet<string> Accents = ["green", "violet", "blue", "red"];
     private readonly HashSet<string> Designs = ["shadows", "layers", "flat", "no-css"];
@@ -54,8 +54,8 @@ public partial class UsersPlugin : Plugin
 
         fontMono = font switch
         {
-            "ubuntu-mono" or "oxygen-mono" => null,
-            "oxygen" => "oxygen-mono",
+            "ubuntu-mono" or "roboto-mono" => null,
+            "roboto" => "roboto-mono",
             "ubuntu" or _ => "ubuntu-mono"
         };
     }
