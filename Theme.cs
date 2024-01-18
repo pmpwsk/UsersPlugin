@@ -54,8 +54,9 @@ public partial class UsersPlugin : Plugin
 
         fontMono = font switch
         {
-            "ubuntu-mono" => null,
-            _ => "ubuntu-mono"
+            "ubuntu-mono" or "oxygen-mono" => null,
+            "oxygen" => "oxygen-mono",
+            "ubuntu" or _ => "ubuntu-mono"
         };
     }
 
