@@ -1,8 +1,0 @@
-@font-face {
-    font-family: 'oxygen';
-    font-style: normal;
-    font-weight: 400;
-    font-display: block;
-    src: url('[PATH_PREFIX]/fonts/oxygen.woff2') format('woff2'), url('[PATH_PREFIX]/fonts/oxygen.woff') format('woff'), url('[PATH_PREFIX]/fonts/oxygen.ttf') format('truetype'), url('[PATH_PREFIX]/fonts/oxygen.otf') format('otf'), url('[PATH_PREFIX]/fonts/oxygen.eot') format('embedded-opentype'), url('[PATH_PREFIX]/fonts/oxygen.svg') format('svg');
-    unicode-range: U+000-5FF;
-}
