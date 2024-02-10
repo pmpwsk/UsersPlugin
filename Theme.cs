@@ -6,7 +6,7 @@ public partial class UsersPlugin : Plugin
 {
     private readonly HashSet<string> Fonts = ["ubuntu", "ubuntu-mono", "roboto", "roboto-mono"];
     private readonly HashSet<string> Backgrounds = ["black", "dark", "light", "white", "beige"];
-    private readonly HashSet<string> Accents = ["green", "violet", "blue", "red"];
+    private readonly HashSet<string> Accents = ["green", "violet", "blue", "red", "none"];
     private readonly HashSet<string> Designs = ["shadows", "layers", "flat", "no-css"];
 
     public string DefaultFont = "roboto";
