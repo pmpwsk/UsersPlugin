@@ -74,6 +74,6 @@ public partial class UsersPlugin : Plugin
         => $"{accent}-{background switch
         {
             "light" or "white" => "light",
-            "black" or "dark" or _ => "dark"
+            "black" or "dark" or "beige" or _ => "dark"
         }}";
 }
