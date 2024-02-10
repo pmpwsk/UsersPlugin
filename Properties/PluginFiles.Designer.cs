@@ -303,6 +303,26 @@ namespace UsersPluginBeta.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] L3RoZW1lL2Evbm9uZS1kYXJrLmNzcw {
+            get {
+                object obj = ResourceManager.GetObject("L3RoZW1lL2Evbm9uZS1kYXJrLmNzcw", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L3RoZW1lL2Evbm9uZS1saWdodC5jc3M {
+            get {
+                object obj = ResourceManager.GetObject("L3RoZW1lL2Evbm9uZS1saWdodC5jc3M", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] L3RoZW1lL2EvcmVkLWRhcmsuY3Nz {
             get {
                 object obj = ResourceManager.GetObject("L3RoZW1lL2EvcmVkLWRhcmsuY3Nz", resourceCulture);
@@ -396,6 +416,16 @@ namespace UsersPluginBeta.Properties {
         internal static byte[] L3RoZW1lL2Ivd2hpdGUuY3Nz {
             get {
                 object obj = ResourceManager.GetObject("L3RoZW1lL2Ivd2hpdGUuY3Nz", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L3RoZW1lL2IvYmVpZ2UuY3Nz {
+            get {
+                object obj = ResourceManager.GetObject("L3RoZW1lL2IvYmVpZ2UuY3Nz", resourceCulture);
                 return ((byte[])(obj));
             }
         }
