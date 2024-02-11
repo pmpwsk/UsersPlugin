@@ -102,7 +102,7 @@ body {
 }
 
 code {
-    padding: 0.1rem 0.2rem;
+    padding: 0 0.2rem;
     box-shadow: 0 0.09rem 0 0 var(--flat);
     font-family: var(--font-code);
 }
