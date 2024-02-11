@@ -183,6 +183,66 @@ namespace UsersPluginBeta.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUub3Rm {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUub3Rm", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUuc3Zn {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUuc3Zn", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUud29mZg {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUud29mZg", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUud29mZjI {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUud29mZjI", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUudHRm {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUudHRm", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] L2ZvbnRzL3NwZWNpYWwtZWxpdGUuZW90 {
+            get {
+                object obj = ResourceManager.GetObject("L2ZvbnRzL3NwZWNpYWwtZWxpdGUuZW90", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] L2ZvbnRzL3VidW50dS1tb25vLm90Zg {
             get {
                 object obj = ResourceManager.GetObject("L2ZvbnRzL3VidW50dS1tb25vLm90Zg", resourceCulture);
