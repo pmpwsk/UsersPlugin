@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'special-elite';
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url('[PATH_PREFIX]/fonts/special-elite.woff2') format('woff2'), url('[PATH_PREFIX]/fonts/special-elite.woff') format('woff'), url('[PATH_PREFIX]/fonts/special-elite.ttf') format('truetype'), url('[PATH_PREFIX]/fonts/special-elite.otf') format('otf'), url('[PATH_PREFIX]/fonts/special-elite.eot') format('embedded-opentype'), url('[PATH_PREFIX]/fonts/special-elite.svg') format('svg');
+    unicode-range: U+000-5FF;
+    size-adjust: 102%;
+}
