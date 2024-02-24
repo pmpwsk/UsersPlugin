@@ -35,7 +35,7 @@ public partial class UsersPlugin : Plugin
                         try
                         {
                             User user = request.UserTable.Register(username, email, password, request);
-                            Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                            Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}&user={user.Id}\">here</a> or enter the following code: {user.MailToken}");
                             await request.Write("ok");
                         }
                         catch (Exception ex)
