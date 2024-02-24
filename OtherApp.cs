@@ -62,8 +62,25 @@ public partial class UsersPlugin : Plugin
             case "/verify":
                 {
                     page.Title = "Verify";
-                    if (request.LoginState != LoginState.NeedsMailVerification || request.User.MailToken == null
-                        || (request.Query.ContainsKey("code") && request.User.VerifyMail(request.Query["code"], request)))
+                    if (request.Query.TryGetValue("user", out var uid) && request.Query.TryGetValue("code", out var code))
+                    {
+                        User user;
+                        if (request.HasUser && request.User.Id == uid)
+                            user = request.User;
+                        else if (request.UserTable.TryGetValue(uid, out var u))
+                            user = u;
+                        else goto Skip;
+                        
+                        if (user.MailToken == null)
+                            request.Redirect(request.RedirectUrl);
+                        else if (user.VerifyMail(code, request))
+                            e.Add(new HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
+                        else goto Skip;
+                        
+                        break;
+                    }
+                Skip:
+                    if (request.LoginState != LoginState.NeedsMailVerification || request.User.MailToken == null)
                     {
                         request.Redirect(request.RedirectUrl);
                         break;
