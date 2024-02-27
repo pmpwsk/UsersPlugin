@@ -82,3 +82,8 @@ async function SaveAccessLevel(id) {
     save.className = "green";
     save.innerText = "Save";
 }
+
+async function SetAccessLevel(id, value) {
+    access.value = value;
+    SaveAccessLevel(id);
+}
