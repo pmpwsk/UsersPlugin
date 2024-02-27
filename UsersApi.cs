@@ -54,6 +54,17 @@ public partial class UsersPlugin : Plugin
                     else request.Status = 400;
                 }
                 break;
+            case "/set-access-level":
+                {
+                    if (request.Query.TryGetValue("id", out string? id) && request.Query.TryGetValue("value", out ushort value))
+                    {
+                        if (request.UserTable.TryGetValue(id, out var user))
+                            user.AccessLevel = value;
+                        else request.Status = 404;
+                    }
+                    else request.Status = 400;
+                }
+                break;
             default:
                 request.Status = 404;
                 break;
