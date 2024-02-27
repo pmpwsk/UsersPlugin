@@ -32,7 +32,12 @@ public partial class UsersPlugin : Plugin
                             user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
                             user.Signup.ToShortDateString())));
                         if (user.Id != request.User.Id)
+                        {
                             e.Add(new ButtonElementJS(null, "Delete forever", $"DeleteUser('{user.Id}')", null, "red", "delete"));
+                            e.Add(new ContainerElement("Access level", new TextBox("Enter a number (1-65535)...", user.AccessLevel.ToString(), "access-level", onEnter: $"SaveAccessLevel('{id}')", onInput: "AccessLevelChanged()"))
+                            { Buttons = [new ButtonJS("Saved!", $"SaveAccessLevel('{id}')", id: "save"), new ButtonJS("Normal", $"SetAccessLevel('{id}','1')"), new ButtonJS("Admin", $"SetAccessLevel('{id}','65355')")] });
+                        }
+                        page.AddError();
                         e.Add(new ContainerElement(null,
                         [
                             new Heading("Key"),
@@ -41,7 +46,6 @@ public partial class UsersPlugin : Plugin
                             new TextBox("Enter a value...", null, "value", TextBoxRole.NoSpellcheck, $"Set('{id}')")
                         ])
                         { Button = new ButtonJS("Set value", $"SetSetting('{id}')", "green") });
-                        page.AddError();
                         foreach (var key in user.Settings.ListKeys())
                             e.Add(new ContainerElement(key, user.Settings[key]) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
                     }
