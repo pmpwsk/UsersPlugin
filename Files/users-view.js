@@ -1,6 +1,8 @@
 let key = document.querySelector("#key");
 let val = document.querySelector("#value");
 let del = document.querySelector("#delete");
+let access = document.querySelector("#access-level");
+let save = document.querySelector("#save");
 
 async function SetSetting(id) {
     if (key.value === "") {
@@ -50,4 +52,33 @@ async function DeleteUser(id) {
     else {
         del.firstElementChild.textContent = "Are you sure?";
     }
+}
+
+async function SaveAccessLevel(id) {
+    HideError();
+    var value = parseInt(access.value);
+    if (value == NaN || value < 1 || value > 65355) {
+        ShowError("The access level needs to be a number between 1 and 65355!");
+        return;
+    }
+    save.className = "green";
+    save.innerText = "Saving...";
+    try {
+        switch ((await fetch("/api[PATH_PREFIX]/users/set-access-level?id=" + id + "&value=" + access.value)).status) {
+            case 200:
+                save.className = "";
+                save.innerText = "Saved!";
+                return;
+            case 400:
+                ShowError("The access level needs to be a number between 1 and 65355!");
+                break;
+            default:
+                ShowError("Connection failed.");
+                break;
+        }
+    } catch {
+        ShowError("Connection failed.");
+    }
+    save.className = "green";
+    save.innerText = "Save";
 }
