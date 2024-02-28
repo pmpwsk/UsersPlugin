@@ -1,4 +1,5 @@
-﻿using uwap.WebFramework.Accounts;
+﻿using System.Web;
+using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
@@ -125,6 +126,29 @@ public partial class UsersPlugin : Plugin
             case "/get-username":
                 if (!await NotLoggedIn(request))
                     await request.Write(request.User.Username);
+                break;
+            case "/generate-limited-token":
+                if (!await NotLoggedIn(request))
+                {
+                    if (request.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && request.Query.TryGetValue("return", out var returnAddress) && request.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
+                    {
+                        var limitedToPaths = limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()).ToList().AsReadOnly();
+                        if (limitedToPaths.Contains(""))
+                        {
+                            request.Status = 400;
+                            break;
+                        }
+
+                        string token = request.User.Auth.AddNewLimited(name, limitedToPaths);
+                        AccountManager.GenerateAuthTokenCookieOptions(out var expires, out var sameSite, out var domain, request.Context);
+                        await request.Write(returnAddress
+                            .Replace("[TOKEN]", request.User.Id + token)
+                            .Replace("[EXPIRES]", expires.Ticks.ToString())
+                            .Replace("[SAMESITE]", sameSite.ToString())
+                            .Replace("[DOMAIN]", domain));
+                    }
+                    else request.Status = 400;
+                }
                 break;
             default:
                 request.Status = 404;
