@@ -1,4 +1,5 @@
-﻿using uwap.WebFramework.Accounts;
+﻿using System.Web;
+using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
@@ -148,6 +149,43 @@ public partial class UsersPlugin : Plugin
                 e.Add(new HeadingElement("Success", "Successfully logged out all other devices and browsers."));
                 e.Add(new ButtonElement("Back to account", null, pathPrefix == "" ? "/" : pathPrefix));
                 break;
+            case "/auth-request":
+                {
+                    if (request.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && request.Query.TryGetValue("yes", out var yes) && request.Query.TryGetValue("no", out var no) && request.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
+                    {
+                        var limitedToPaths = limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()).ToList();
+                        if (limitedToPaths.Contains(""))
+                        {
+                            request.Status = 400;
+                            break;
+                        }
+
+                        page.Scripts.Add(new Script($"{pathPrefix}/auth-request.js"));
+
+                        string? backgroundDomain = request.Query.TryGetValue("background", out var b) && b.SplitAtFirst("://", out var bProto, out b) && (bProto == "http" || bProto == "https") && b.SplitAtFirst('/', out b, out _) ? b : null;
+
+                        page.Title = "Authentication request";
+                        if (NotLoggedIn(request)) break;
+                        e.Add(new LargeContainerElement("Authentication request",
+                        [
+                            new Paragraph($"The application \"{name}\" would like to authenticate using {request.Domain}."),
+                            new Paragraph("It will only get access to the following addresses:"),
+                            new BulletList(limitedToPaths)
+                        ]));
+                        page.AddError();
+                        e.Add(new ButtonElementJS("Allow", $"{(backgroundDomain == null ? "O" : $"Gives a token to \"{backgroundDomain}\" and o")}pens:<br/>{yes.Before('?').HtmlSafe()}", "Allow()", "green"));
+                        e.Add(new ButtonElement("Reject", $"Opens:<br/>{no.Before('?').HtmlSafe()}", no, "red"));
+                        e.Add(new ContainerElement(null,
+                        [
+                            "Addresses ending with * indicate that the application can access any address starting with the part before the *.",
+                            "Closing this page will also reject the request, but the application won't be opened in order for it to know that it was rejected.",
+                            "You can manage applications you have given access to in your account settings.",
+                            "Logging out all other devices from your account menu also logs you out of any applications you have given access to.",
+                            $"In order to be able to log themselves out, applications automatically get access to \"{request.Domain}{pathPrefix}/logout\" as well."
+                        ]));
+                    }
+                    else request.Status = 400;
+                } break;
             default:
                 request.Status = 404;
                 break;
