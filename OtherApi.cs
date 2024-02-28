@@ -132,7 +132,11 @@ public partial class UsersPlugin : Plugin
                 {
                     if (request.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && request.Query.TryGetValue("return", out var returnAddress) && request.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
                     {
-                        var limitedToPaths = limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()).ToList().AsReadOnly();
+                        var limitedToPaths =
+                        ((IEnumerable<string>)[
+                            ..limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()),
+                            $"{request.Domain}{pathPrefix}/logout"
+                        ]).ToList().AsReadOnly();
                         if (limitedToPaths.Contains(""))
                         {
                             request.Status = 400;
