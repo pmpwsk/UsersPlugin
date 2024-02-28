@@ -122,6 +122,10 @@ public partial class UsersPlugin : Plugin
                     else await request.Write("no");
                 }
                 break;
+            case "/get-username":
+                if (!await NotLoggedIn(request))
+                    await request.Write(request.User.Username);
+                break;
             default:
                 request.Status = 404;
                 break;
