@@ -185,6 +185,18 @@ public partial class UsersPlugin : Plugin
                     await request.Write("ok");
                 }
                 break;
+            case "/remove-limited-token":
+                {
+                    if (request.Query.TryGetValue("index", out int index) && index >= 0 && request.Query.TryGetValue("name", out var name) && request.Query.TryGetValue("expires", out long ticks))
+                    {
+                        var kv = request.User.Auth.ElementAtOrDefault(index);
+                        if (kv.Equals(default(KeyValuePair<string, AuthTokenData>)))
+                            request.Status = 404;
+                        else request.User.Auth.Delete(kv.Key);
+                    }
+                    else request.Status = 400;
+                }
+                break;
             default:
                 request.Status = 404;
                 break;
