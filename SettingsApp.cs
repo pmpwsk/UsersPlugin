@@ -21,6 +21,7 @@ public partial class UsersPlugin : Plugin
                 e.Add(new ButtonElement("Email address", null, $"{pathPrefix}/settings/email"));
                 e.Add(new ButtonElement("Password", null, $"{pathPrefix}/settings/password"));
                 e.Add(new ButtonElement("Two-factor authentication", null, $"{pathPrefix}/settings/2fa"));
+                e.Add(new ButtonElement("Applications", null, $"{pathPrefix}/settings/apps"));
                 e.Add(new ButtonElement("Delete account", null, $"{pathPrefix}/settings/delete"));
                 break;
             case "/theme":
