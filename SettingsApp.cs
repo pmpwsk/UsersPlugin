@@ -137,6 +137,31 @@ public partial class UsersPlugin : Plugin
                     Presets.AddError(page);
                 }
                 break;
+            case "/apps":
+                page.Title = "Applications";
+                page.Scripts.Add(new Script($"{pathPrefix}/settings/apps.js"));
+                e.Add(new HeadingElement("Applications", "These are the applications that have partial access to your account."));
+                page.AddError();
+                int index = 0;
+                bool foundAny = false;
+                foreach (var kv in request.User.Auth)
+                {
+                    if (kv.Value.LimitedToPaths != null)
+                    {
+                        foundAny = true;
+                        e.Add(new ContainerElement(kv.Value.FriendlyName,
+                        [
+                            new Paragraph($"Expires: {kv.Value.Expires} UTC"),
+                            new BulletList(kv.Value.LimitedToPaths)
+                        ]) { Button = new ButtonJS("Remove", $"Remove('{index}','{HttpUtility.UrlEncode(kv.Value.FriendlyName)}','{kv.Value.Expires.Ticks}')", "red") });
+                    }
+                    index++;
+                }
+                if (!foundAny)
+                {
+                    e.Add(new ContainerElement("No applications!", "", classes: "red"));
+                }
+                break;
             case "/delete":
                 page.Title = "Delete account";
                 page.Scripts.Add(new Script($"{pathPrefix}/settings/delete.js"));
