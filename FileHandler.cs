@@ -146,7 +146,7 @@ public partial class UsersPlugin : Plugin
             "/theme/b/light.css" => "638409498007323872",
             "/theme/b/white.css" => "638409498541666478",
             "/theme/d/flat.css" => "638431805460000000",
-            "/theme/d/layers.css" => "638411980540000000",
+            "/theme/d/layers.css" => "638448491969324121",
             "/theme/d/shadows.css" => "638409389307804389",
             "/theme/f/roboto-mono.css" => "638411977070000000",
             "/theme/f/roboto.css" => "638411978470000000",
