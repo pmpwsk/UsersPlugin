@@ -1,28 +1,27 @@
-﻿using uwap.WebFramework.Accounts;
-using uwap.WebFramework.Elements;
+﻿using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    public static void Users(AppRequest request, string path, string pathPrefix)
+    public static void Users(AppRequest req, string path, string pathPrefix)
     {
-        if (!request.IsAdmin())
+        if (!req.IsAdmin())
         {
-            request.Status = 403;
+            req.Status = 403;
             return;
         }
-        Presets.Init(request, out Page page, out var e);
+        Presets.Init(req, out Page page, out var e);
         switch(path)
         {
             case "":
                 {
                     page.Title = "Users";
-                    if (request.Query.TryGetValue("id", out var id))
+                    if (req.Query.TryGetValue("id", out var id))
                     {
-                        if (!request.UserTable.TryGetValue(id, out var user))
+                        if (!req.UserTable.TryGetValue(id, out var user))
                         {
-                            request.Status = 404;
+                            req.Status = 404;
                             break;
                         }
                         page.Scripts.Add(new Script($"{pathPrefix}/users-view.js"));
@@ -31,7 +30,7 @@ public partial class UsersPlugin : Plugin
                             user.MailAddress,
                             user.TwoFactor.TOTPEnabled() ? "2FA enabled" : "2FA disabled",
                             user.Signup.ToShortDateString())));
-                        if (user.Id != request.User.Id)
+                        if (user.Id != req.User.Id)
                         {
                             e.Add(new ButtonElementJS(null, "Delete forever", $"DeleteUser('{user.Id}')", null, "red", "delete"));
                             e.Add(new ContainerElement("Access level", new TextBox("Enter a number (1-65535)...", user.AccessLevel.ToString(), "access-level", onEnter: $"SaveAccessLevel('{id}')", onInput: "AccessLevelChanged()"))
@@ -51,13 +50,13 @@ public partial class UsersPlugin : Plugin
                     }
                     else
                     {
-                        foreach (var kv in request.UserTable)
+                        foreach (var kv in req.UserTable)
                             e.Add(new ButtonElement(kv.Value.Username, kv.Value.MailAddress, $"{pathPrefix}/users?id={kv.Value.Id}"));
                     }
                 }
                 break;
             default:
-                request.Status = 404;
+                req.Status = 404;
                 break;
         }
     }

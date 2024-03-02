@@ -15,9 +15,9 @@ public partial class UsersPlugin : Plugin
     public string DefaultDesign = "layers";
 
 
-    public Style GetStyle(IRequest request, out string fontUrl, string pathPrefix)
+    public Style GetStyle(IRequest req, out string fontUrl, string pathPrefix)
     {
-        ThemeFromQuery((request.LoggedIn && request.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? fontMono, out string background, out string accent, out string design);
+        ThemeFromQuery((req.LoggedIn && req.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? fontMono, out string background, out string accent, out string design);
         fontUrl = $"{pathPrefix}/fonts/{font}.woff2";
         return new Style($"/api{pathPrefix}/theme.css?f={font}&b={background}&a={accent}&d={design}&t={Timestamp(font, fontMono, background, accent, design)}");
     }

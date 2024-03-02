@@ -6,42 +6,39 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    public static async Task Other(ApiRequest request, string path, string pathPrefix)
+    public static async Task Other(ApiRequest req, string path, string pathPrefix)
     {
         switch (path)
         {
             case "/login":
-                {
-                    if (await AlreadyLoggedIn(request)) break;
-                    if (request.Query.TryGetValue("username", out var username) && request.Query.TryGetValue("password", out var password))
+                if (!await AlreadyLoggedIn(req))
+                    if (req.Query.TryGetValue("username", out var username) && req.Query.TryGetValue("password", out var password))
                     {
-                        User? user = request.UserTable.Login(username, password, request);
+                        User? user = req.UserTable.Login(username, password, req);
                         if (user != null)
                         {
                             user.Settings.Delete("Delete");
                             if (!user.TwoFactor.TOTPEnabled())
                                 Presets.WarningMail(user, "New login", "Someone just successfully logged into your account.");
-                            await request.Write("ok");
+                            await req.Write("ok");
                         }
-                        else await request.Write("no");
+                        else await req.Write("no");
                     }
-                    else request.Status = 400;
-                }
+                    else req.Status = 400;
                 break;
             case "/register":
-                {
-                    if (await AlreadyLoggedIn(request)) break;
-                    if (request.Query.TryGetValue("username", out var username) && request.Query.TryGetValue("email", out var email) && request.Query.TryGetValue("password", out var password))
+                if (!await AlreadyLoggedIn(req))
+                    if (req.Query.TryGetValue("username", out var username) && req.Query.TryGetValue("email", out var email) && req.Query.TryGetValue("password", out var password))
                     {
                         try
                         {
-                            User user = request.UserTable.Register(username, email, password, request);
-                            Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}&user={user.Id}\">here</a> or enter the following code: {user.MailToken}");
-                            await request.Write("ok");
+                            User user = req.UserTable.Register(username, email, password, req);
+                            Presets.WarningMail(user, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.Context.ProtoHost()}{pathPrefix}/verify?code={user.MailToken}&user={user.Id}\">here</a> or enter the following code: {user.MailToken}");
+                            await req.Write("ok");
                         }
                         catch (Exception ex)
                         {
-                            await request.Write(ex.Message switch
+                            await req.Write(ex.Message switch
                             {
                                 "Invalid username format." => "bad-username",
                                 "Invalid mail address format." => "bad-email",
@@ -52,52 +49,51 @@ public partial class UsersPlugin : Plugin
                             });
                         }
                     }
-                    else request.Status = 400;
-                }
+                    else req.Status = 400;
                 break;
             case "/verify":
                 {
-                    if (!request.HasUser)
-                        await request.Write("Not logged in.");
-                    else if (request.User.MailToken == null)
-                        await request.Write("Already verified.");
-                    else if (request.Query.TryGet("resend") == "please")
-                        Presets.WarningMail(request.User, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={request.User.MailToken}\">here</a> or enter the following code: {request.User.MailToken}");
-                    else if (!request.Query.TryGetValue("code", out var code))
-                        request.Status = 400;
-                    else if (request.User.VerifyMail(code, request))
-                        await request.Write("ok");
-                    else await request.Write("Invalid code.");
+                    if (!req.HasUser)
+                        await req.Write("Not logged in.");
+                    else if (req.User.MailToken == null)
+                        await req.Write("Already verified.");
+                    else if (req.Query.TryGet("resend") == "please")
+                        Presets.WarningMail(req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.Context.ProtoHost()}{pathPrefix}/verify?code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                    else if (!req.Query.TryGetValue("code", out var code))
+                        req.Status = 400;
+                    else if (req.User.VerifyMail(code, req))
+                        await req.Write("ok");
+                    else await req.Write("Invalid code.");
                 }
                 break;
             case "/verify-change":
                 {
-                    if (!request.HasUser)
+                    if (!req.HasUser)
                     {
-                        await request.Write("Not logged in.");
+                        await req.Write("Not logged in.");
                         break;
                     }
-                    if (request.User.MailToken == null)
+                    if (req.User.MailToken == null)
                     {
-                        await request.Write("Already verified.");
+                        await req.Write("Already verified.");
                         break;
                     }
-                    if (!request.Query.TryGetValue("email", out var email))
+                    if (!req.Query.TryGetValue("email", out var email))
                     {
-                        request.Status = 400;
+                        req.Status = 400;
                         break;
                     }
                     string mail = email;
                     try
                     {
-                        request.User.SetMailAddress(mail, request.UserTable);
-                        request.User.SetNewMailToken();
-                        Presets.WarningMail(request.User, "Welcome", $"Thank you for registering on <a href=\"{request.Context.ProtoHost()}\">{request.Domain}</a>.\nTo verify your email address, click <a href=\"{request.Context.ProtoHost()}{pathPrefix}/verify?code={request.User.MailToken}\">here</a> or enter the following code: {request.User.MailToken}");
-                        await request.Write("ok");
+                        req.User.SetMailAddress(mail, req.UserTable);
+                        req.User.SetNewMailToken();
+                        Presets.WarningMail(req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.Context.ProtoHost()}{pathPrefix}/verify?code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                        await req.Write("ok");
                     }
                     catch (Exception ex)
                     {
-                        await request.Write(ex.Message switch
+                        await req.Write(ex.Message switch
                         {
                             "Another user with the provided mail address already exists." => "exists",
                             "The provided mail address is the same as the old one." => "same",
@@ -109,53 +105,53 @@ public partial class UsersPlugin : Plugin
                 break;
             case "/2fa":
                 {
-                    if (request.LoginState != LoginState.Needs2FA)
-                        await request.Write("User does not need 2FA verification at the moment.");
-                    else if (!request.Query.TryGetValue("code", out var code))
-                        request.Status = 400;
-                    else if (!request.User.TwoFactor.TOTPEnabled(out var totp))
-                        request.Status = 404;
-                    else if (totp.Validate(code, request, true))
+                    if (req.LoginState != LoginState.Needs2FA)
+                        await req.Write("User does not need 2FA verification at the moment.");
+                    else if (!req.Query.TryGetValue("code", out var code))
+                        req.Status = 400;
+                    else if (!req.User.TwoFactor.TOTPEnabled(out var totp))
+                        req.Status = 404;
+                    else if (totp.Validate(code, req, true))
                     {
-                        await request.Write("ok");
-                        Presets.WarningMail(request.User, "New login", "Someone just successfully logged into your account.");
+                        await req.Write("ok");
+                        Presets.WarningMail(req.User, "New login", "Someone just successfully logged into your account.");
                     }
-                    else await request.Write("no");
+                    else await req.Write("no");
                 }
                 break;
             case "/get-username":
-                if (!await NotLoggedIn(request))
-                    await request.Write(request.User.Username);
+                if (!await NotLoggedIn(req))
+                    await req.Write(req.User.Username);
                 break;
             case "/generate-limited-token":
-                if (!await NotLoggedIn(request))
+                if (!await NotLoggedIn(req))
                 {
-                    if (request.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && request.Query.TryGetValue("return", out var returnAddress) && request.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
+                    if (req.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && req.Query.TryGetValue("return", out var returnAddress) && req.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
                     {
                         var limitedToPaths =
                         ((IEnumerable<string>)[
                             ..limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()),
-                            $"{request.Domain}{pathPrefix}/logout"
+                            $"{req.Domain}{pathPrefix}/logout"
                         ]).ToList().AsReadOnly();
                         if (limitedToPaths.Contains(""))
                         {
-                            request.Status = 400;
+                            req.Status = 400;
                             break;
                         }
 
-                        string token = request.User.Auth.AddNewLimited(name, limitedToPaths);
-                        AccountManager.GenerateAuthTokenCookieOptions(out var expires, out var sameSite, out var domain, request.Context);
-                        await request.Write(returnAddress
-                            .Replace("[TOKEN]", request.User.Id + token)
+                        string token = req.User.Auth.AddNewLimited(name, limitedToPaths);
+                        AccountManager.GenerateAuthTokenCookieOptions(out var expires, out var sameSite, out var domain, req.Context);
+                        await req.Write(returnAddress
+                            .Replace("[TOKEN]", req.User.Id + token)
                             .Replace("[EXPIRES]", expires.Ticks.ToString())
                             .Replace("[SAMESITE]", sameSite.ToString())
                             .Replace("[DOMAIN]", domain));
                     }
-                    else request.Status = 400;
+                    else req.Status = 400;
                 }
                 break;
             default:
-                request.Status = 404;
+                req.Status = 404;
                 break;
         }
     }

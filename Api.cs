@@ -32,12 +32,11 @@ public partial class UsersPlugin : Plugin
                     //browser cache
                     if (Server.Config.BrowserCacheMaxAge.TryGetValue(".css", out int maxAge))
                     {
-                        if (maxAge == 0) req.Context.Response.Headers.CacheControl = "no-cache, private";
+                        if (maxAge == 0)
+                            req.Context.Response.Headers.CacheControl = "no-cache, private";
                         else
                         {
-                            if (!req.Context.Response.Headers.ContainsKey("Cache-Control"))
-                                req.Context.Response.Headers.CacheControl = "public, max-age=" + maxAge;
-                            else req.Context.Response.Headers.CacheControl = "public, max-age=" + maxAge;
+                            req.Context.Response.Headers.CacheControl = "public, max-age=" + maxAge;
                             try
                             {
                                 if (req.Context.Request.Headers.TryGetValue("If-None-Match", out var oldTag) && oldTag == timestamp)
@@ -82,14 +81,16 @@ public partial class UsersPlugin : Plugin
 
     private async static Task<bool> AlreadyLoggedIn(ApiRequest request)
     {
-        if (!request.HasUser) return false;
+        if (!request.HasUser)
+            return false;
         await request.Write("Already logged in.");
         return true;
     }
 
     private async static Task<bool> NotLoggedIn(ApiRequest request)
     {
-        if (request.LoggedIn) return false;
+        if (request.LoggedIn)
+            return false;
         await request.Write("Not logged in.");
         return true;
     }

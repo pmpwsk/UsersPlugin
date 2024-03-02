@@ -4,23 +4,23 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    public override Task Handle(AppRequest request, string path, string pathPrefix)
+    public override Task Handle(AppRequest req, string path, string pathPrefix)
     {
-        Presets.CreatePage(request, "Account", out var page, out _);
-        Presets.Navigation(request, page);
+        Presets.CreatePage(req, "Account", out var page, out _);
+        Presets.Navigation(req, page);
         switch (Parsers.GetFirstSegment(path, out string rest))
         {
             case "settings":
-                Settings(request, rest, pathPrefix);
+                Settings(req, rest, pathPrefix);
                 break;
             case "recovery":
-                Recovery(request, rest, pathPrefix);
+                Recovery(req, rest, pathPrefix);
                 break;
             case "users":
-                Users(request, rest, pathPrefix);
+                Users(req, rest, pathPrefix);
                 break;
             default:
-                Other(request, path, pathPrefix);
+                Other(req, path, pathPrefix);
                 break;
         }
         return Task.CompletedTask;
@@ -28,14 +28,16 @@ public partial class UsersPlugin : Plugin
 
     private static bool AlreadyLoggedIn(AppRequest request)
     {
-        if (!request.HasUser) return false;
+        if (!request.HasUser)
+            return false;
         else request.Redirect(request.RedirectUrl);
         return true;
     }
 
     private static bool NotLoggedIn(AppRequest request)
     {
-        if (request.LoggedIn) return false;
+        if (request.LoggedIn)
+            return false;
         else request.RedirectToLogin();
         return true;
     }
