@@ -120,8 +120,9 @@ public partial class UsersPlugin : Plugin
                 }
                 break;
             case "/get-username":
-                if (!await NotLoggedIn(req))
+                if (req.LoggedIn)
                     await req.Write(req.User.Username);
+                else req.Status = 403;
                 break;
             case "/generate-limited-token":
                 if (!await NotLoggedIn(req))
