@@ -146,6 +146,7 @@ public partial class UsersPlugin : Plugin
                             .Replace("[EXPIRES]", expires.Ticks.ToString())
                             .Replace("[SAMESITE]", sameSite.ToString())
                             .Replace("[DOMAIN]", domain));
+                        Presets.WarningMail(req.User, $"App '{name}' was granted access", $"The app '{name}' has just been granted limited access to your account. You can view and manage apps with access in your account settings.");
                     }
                     else req.Status = 400;
                 }
