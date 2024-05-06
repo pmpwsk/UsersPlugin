@@ -57,8 +57,8 @@ async function DeleteUser(id) {
 async function SaveAccessLevel(id) {
     HideError();
     var value = parseInt(access.value);
-    if (value == NaN || value < 1 || value > 65355) {
-        ShowError("The access level needs to be a number between 1 and 65355!");
+    if (value == NaN || value < 1 || value > 65535) {
+        ShowError("The access level needs to be a number between 1 and 65535!");
         return;
     }
     save.className = "green";
@@ -70,7 +70,7 @@ async function SaveAccessLevel(id) {
                 save.innerText = "Saved!";
                 return;
             case 400:
-                ShowError("The access level needs to be a number between 1 and 65355!");
+                ShowError("The access level needs to be a number between 1 and 65535!");
                 break;
             default:
                 ShowError("Connection failed.");
