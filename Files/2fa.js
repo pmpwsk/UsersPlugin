@@ -1,6 +1,7 @@
 let code = document.querySelector("#code");
 
 async function Continue() {
+    HideError();
     if (code.value === "") {
         ShowError("Enter the current code or a recovery code.");
     } else {

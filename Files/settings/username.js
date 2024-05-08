@@ -1,8 +1,10 @@
 let username = document.querySelector("#username");
 let password = document.querySelector("#password");
 let code = document.querySelector("#code");
+let continueButton = document.querySelector("#continueButton").firstElementChild;
 
 async function Continue() {
+    HideError();
     if (username.value === "") {
         ShowError("Enter a username.");
     } else if (password.value === "") {
@@ -10,6 +12,7 @@ async function Continue() {
     } else if (code.value === "") {
         ShowError("Enter the current code or a recovery code.");
     } else {
+        continueButton.innerText = "Loading...";
         let response = await fetch("/api[PATH_PREFIX]/settings/username?username=" + encodeURIComponent(username.value) + "&code=" + encodeURIComponent(code.value) + "&password=" + encodeURIComponent(password.value));
         if (response.status === 200) {
             let text = await response.text();
@@ -24,5 +27,6 @@ async function Continue() {
         } else {
             ShowError("Connection failed.");
         }
+        continueButton.innerText = "Change";
     }
 }

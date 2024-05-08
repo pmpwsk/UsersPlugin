@@ -1,6 +1,7 @@
 let code = document.querySelector("#code");
 
 async function Continue() {
+    HideError();
     if (code.value === "") {
         ShowError("Enter a code.");
     } else {
@@ -19,6 +20,7 @@ async function Continue() {
 }
 
 async function Resend() {
+    HideError();
     let response = await fetch("/api[PATH_PREFIX]/verify?resend=please");
     if (response.status != 200) {
         ShowError("Connection failed.");

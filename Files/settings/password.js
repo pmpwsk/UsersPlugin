@@ -5,6 +5,7 @@ let code = document.querySelector("#code");
 let continueButton = document.querySelector("#continueButton").firstElementChild;
 
 async function Continue() {
+    HideError();
     if (password1.value === "") {
         ShowError("Enter a password.");
     } else if (password2.value === "") {

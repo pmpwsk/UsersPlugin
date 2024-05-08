@@ -1,4 +1,5 @@
 async function Save() {
+    HideError();
     try {
         let response = await fetch("/api[PATH_PREFIX]/settings/theme"
             + "?f=" + document.querySelector("#font").value

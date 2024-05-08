@@ -1,6 +1,7 @@
 let email = document.querySelector("#email");
 
 async function Continue(url) {
+    HideError();
     if (email.value === "") {
         ShowError("Enter your email address.");
     } else {

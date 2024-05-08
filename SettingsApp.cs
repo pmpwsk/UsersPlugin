@@ -49,7 +49,7 @@ public partial class UsersPlugin : Plugin
                             new Heading("2FA code / recovery:"),
                             new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('disable')")
                         ]));
-                        e.Add(new ButtonElementJS("Disable", null, "Continue('disable')"));
+                        e.Add(new ButtonElementJS("Disable", null, "Continue('disable')", id: "continueButton"));
                         Presets.AddError(page);
                     }
                     else
@@ -74,7 +74,7 @@ public partial class UsersPlugin : Plugin
                             new Heading("2FA code:"),
                             new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
                         ]));
-                        e.Add(new ButtonElementJS("Enable", null, "Continue('enable')"));
+                        e.Add(new ButtonElementJS("Enable", null, "Continue('enable')", id: "continueButton"));
                         Presets.AddError(page);
                     }
                 }
@@ -85,7 +85,7 @@ public partial class UsersPlugin : Plugin
                 e.Add(new HeadingElement("Username settings", "Warning: Other devices will remain logged in.<br />Current: " + req.User.Username));
                 e.Add(new ContainerElement("New username:", new TextBox("Enter a username...", req.User.Username, "username", TextBoxRole.Username, "Continue()")));
                 req.AddAuthElements();
-                e.Add(new ButtonElementJS("Change", null, "Continue()"));
+                e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                 Presets.AddError(page);
                 break;
             case "/password":
@@ -123,7 +123,7 @@ public partial class UsersPlugin : Plugin
                     { Button = new Button("Cancel", $"{pathPrefix}/settings/email?action=cancel", "red") });
                     e.Add(new ContainerElement("Verification code", new TextBox("Enter the code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true))
                     { Button = new ButtonJS("Send again", "Resend()") });
-                    e.Add(new ButtonElementJS("Change", null, "Continue()"));
+                    e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                     Presets.AddError(page);
                 }
                 else
@@ -132,7 +132,7 @@ public partial class UsersPlugin : Plugin
                     e.Add(new HeadingElement("Email settings", $"Current: {req.User.MailAddress}"));
                     e.Add(new ContainerElement("New email:", new TextBox("Enter the email address...", req.User.MailAddress, "email", TextBoxRole.Email, "Continue()")));
                     req.AddAuthElements();
-                    e.Add(new ButtonElementJS("Continue", null, "Continue()"));
+                    e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
                     Presets.AddError(page);
                 }
                 break;
@@ -168,7 +168,7 @@ public partial class UsersPlugin : Plugin
                     new Paragraph($"If you really want to delete your account, enter your password{(req.User.TwoFactor.TOTPEnabled()?" and 2FA code":"")} below.")
                 ]));
                 req.AddAuthElements();
-                e.Add(new ButtonElementJS("Delete account :(", null, "Continue()"));
+                e.Add(new ButtonElementJS("Delete account :(", null, "Continue()", id: "continueButton"));
                 Presets.AddError(page);
                 break;
             default:

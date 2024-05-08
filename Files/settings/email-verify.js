@@ -1,9 +1,12 @@
 let code = document.querySelector("#code");
+let continueButton = document.querySelector("#continueButton").firstElementChild;
 
 async function Continue() {
+    HideError();
     if (code.value === "") {
         ShowError("Enter a code.");
     } else {
+        continueButton.innerText = "Loading...";
         let response = await fetch("/api[PATH_PREFIX]/settings/email?code=" + encodeURIComponent(code.value));
         if (response.status === 200) {
             let text = await response.text();
@@ -18,10 +21,12 @@ async function Continue() {
         } else {
             ShowError("Connection failed.");
         }
+        continueButton.innerText = "Change";
     }
 }
 
 async function Resend() {
+    HideError();
     let response = await fetch("/api[PATH_PREFIX]/settings/email?resend=please");
     if (response.status != 200) {
         ShowError("Connection failed.");

@@ -2,6 +2,7 @@ let password1 = document.querySelector("#password1");
 let password2 = document.querySelector("#password2");
 
 async function Continue(url, token) {
+    HideError();
     if (password1.value === "") {
         ShowError("Enter a password.");
     } else if (password2.value === "") {

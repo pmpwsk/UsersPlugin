@@ -5,6 +5,7 @@ let access = document.querySelector("#access-level");
 let save = document.querySelector("#save");
 
 async function SetSetting(id) {
+    HideError();
     if (key.value === "") {
         ShowError("Enter a key.");
     } else if (val.value === "") {
@@ -24,6 +25,7 @@ async function SetSetting(id) {
 }
 
 async function DeleteSetting(id, k) {
+    HideError();
     let response = await fetch("/api[PATH_PREFIX]/users/delete-setting?id=" + id + "&key=" + encodeURIComponent(k));
     if (response.status === 200) {
         let text = await response.text();
@@ -37,6 +39,7 @@ async function DeleteSetting(id, k) {
 }
 
 async function DeleteUser(id) {
+    HideError();
     if (del.firstElementChild.textContent === "Are you sure?") {
         let response = await fetch("/api[PATH_PREFIX]/users/delete-user?id=" + id);
         if (response.status === 200) {

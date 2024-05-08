@@ -3,6 +3,7 @@ let password = document.querySelector("#password");
 let continueButton = document.querySelector("#continueButton").firstElementChild;
 
 async function Continue() {
+    HideError();
     if (username.value === "") {
         ShowError("Enter your username.");
     } else if (password.value === "") {

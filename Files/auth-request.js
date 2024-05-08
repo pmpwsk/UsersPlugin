@@ -1,4 +1,5 @@
 async function Allow() {
+    HideError();
     try {
         var background = GetQuery("background");
         if (background !== "null") {
