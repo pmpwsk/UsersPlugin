@@ -28,6 +28,7 @@ public partial class UsersPlugin : Plugin
                     page.Scripts.Add(new Script($"{pathPrefix}/settings/theme.js"));
                     page.Title = "Theme settings";
                     e.Add(new HeadingElement("Theme settings", ""));
+                    page.AddError();
                     ThemeFromQuery((req.LoggedIn && req.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? _, out string background, out string accent, out string design);
                     e.Add(new ContainerElement("Background", new Selector("background", background, [..Backgrounds]) { OnChange = "Save()" }));
                     e.Add(new ContainerElement("Accent", new Selector("accent", accent, [..Accents]) { OnChange = "Save()" }));
