@@ -18,26 +18,20 @@ async function Continue() {
         ShowError("Enter the current code or a recovery code.");
     } else {
         continueButton.innerText = "Loading...";
-        let response = await fetch("/api[PATH_PREFIX]/settings/password?new-password=" + encodeURIComponent(password1.value) + "&code=" + encodeURIComponent(code.value) + "&password=" + encodeURIComponent(password.value));
-        if (response.status === 200) {
-            let text = await response.text();
-            switch (text) {
-                case "ok": window.location.assign("[PATH_PREFIX]/settings"); break;
-                case "no": ShowError("Invalid password or 2FA code."); break;
-                case "bad": ShowError("Passwords must be at least 8 characters long and contain at least one uppercase letter, lowercase letter, digit and special character."); break;
-                case "same": ShowError("The provided password is the same as the old one."); break;
-                default: ShowError("Connection failed.");
-            }
-        } else {
-            ShowError("Connection failed.");
+        switch (await SendRequest(`password/set?new-password=${encodeURIComponent(password1.value)}&code=${encodeURIComponent(code.value)}&password=${encodeURIComponent(password.value)}`, "POST")) {
+            case "ok": window.location.assign("../settings"); break;
+            case "no": ShowError("Invalid password or 2FA code."); break;
+            case "bad": ShowError("Passwords must be at least 8 characters long and contain at least one uppercase letter, lowercase letter, digit and special character."); break;
+            case "same": ShowError("The provided password is the same as the old one."); break;
+            default: ShowError("Connection failed."); break;
         }
         continueButton.innerText = "Change";
     }
 }
 
 async function Cancel() {
-    let response = await fetch("/api[PATH_PREFIX]/settings/password?action=cancel");
-    if (response.status === 200) {
+    HideError();
+    if ((await fetch("password/cancel-reset", {method:"POST"})).status === 200)
         window.location.reload();
-    }
+    else ShowError("Connection failed.");
 }

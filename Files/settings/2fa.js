@@ -10,18 +10,10 @@ async function Continue(method) {
         ShowError("Enter your password.");
     } else {
         continueButton.innerText = "Loading...";
-        let response = await fetch("/api[PATH_PREFIX]/settings/2fa?method=" + method + "&code=" + encodeURIComponent(code.value) + "&password=" + encodeURIComponent(password.value));
-        if (response.status === 200) {
-            let text = await response.text();
-            if (text === "no") {
-                ShowError("Invalid code or password.");
-            } else if (text === "ok") {
-                window.location.assign("[PATH_PREFIX]/settings");
-            } else {
-                ShowError("Connection failed.");
-            }
-        } else {
-            ShowError("Connection failed.");
+        switch (await SendRequest(`2fa/change?method=${method}&code=${encodeURIComponent(code.value)}&password=${encodeURIComponent(password.value)}`, "POST")) {
+            case "ok": window.location.assign("../settings"); break;
+            case "no": ShowError("Invalid code or password."); break;
+            default: ShowError("Connection failed."); break;
         }
         continueButton.innerText = method === "enable" ? "Enable" : "Disable";
     }

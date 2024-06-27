@@ -1,22 +1,17 @@
 let code = document.querySelector("#code");
+let continueButton = document.querySelector("#continueButton").firstElementChild;
 
 async function Continue() {
     HideError();
-    if (code.value === "") {
+    if (code.value === "")
         ShowError("Enter the current code or a recovery code.");
-    } else {
-        let response = await fetch("/api[PATH_PREFIX]/2fa?code=" + encodeURIComponent(code.value));
-        if (response.status === 200) {
-            let text = await response.text();
-            if (text === "no") {
-                ShowError("Invalid code.");
-            } else if (text === "ok") {
-                Redirect();
-            } else {
-                ShowError("Connection failed.");
-            }
-        } else {
-            ShowError("Connection failed.");
+    else {
+        continueButton.innerText = "Loading...";
+        switch (await SendRequest(`2fa/try?code=${encodeURIComponent(code.value)}`, "POST")) {
+            case "ok": Redirect(); break;
+            case "no": ShowError("Invalid code."); break;
+            default: ShowError("Connection failed."); break;
         }
+        continueButton.innerText = "Continue";
     }
 }

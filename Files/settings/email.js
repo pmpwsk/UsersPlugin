@@ -13,19 +13,13 @@ async function Continue() {
         ShowError("Enter the current code or a recovery code.");
     } else {
         continueButton.innerText = "Loading...";
-        let response = await fetch("/api[PATH_PREFIX]/settings/email?email=" + encodeURIComponent(email.value) + "&code=" + encodeURIComponent(code.value) + "&password=" + encodeURIComponent(password.value));
-        if (response.status === 200) {
-            let text = await response.text();
-            switch (text) {
-                case "ok": window.location.reload(); break;
-                case "no": ShowError("Invalid password or 2FA code."); break;
-                case "bad": ShowError("Invalid email address."); break;
-                case "exists": ShowError("This email address is already being used by another account."); break;
-                case "same": ShowError("The provided email address is the same as the old one."); break;
-                default: ShowError("Connection failed.");
-            }
-        } else {
-            ShowError("Connection failed.");
+        switch (await SendRequest(`email/set?email=${encodeURIComponent(email.value)}&code=${encodeURIComponent(code.value)}&password=${encodeURIComponent(password.value)}`, "POST")) {
+            case "ok": window.location.reload(); break;
+            case "no": ShowError("Invalid password or 2FA code."); break;
+            case "bad": ShowError("Invalid email address."); break;
+            case "exists": ShowError("This email address is already being used by another account."); break;
+            case "same": ShowError("The provided email address is the same as the old one."); break;
+            default: ShowError("Connection failed."); break;
         }
         continueButton.innerText = "Change";
     }

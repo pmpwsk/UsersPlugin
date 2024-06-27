@@ -1,4 +1,5 @@
 async function Remove(index, name, expires) {
-    await fetch("/api[PATH_PREFIX]/settings/remove-limited-token?index=" + index + "&name=" + name + "&expires=" + expires);
-    window.location.reload();
+    if ((await fetch(`apps/remove?index=${index}&name=${name}&expires=${expires}`, {method:"POST"})).status === 200)
+        window.location.reload();
+    else ShowError("Connection failed.");
 }

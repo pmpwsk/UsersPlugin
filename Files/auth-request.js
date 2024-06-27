@@ -4,12 +4,11 @@ async function Allow() {
         var background = GetQuery("background");
         if (background !== "null") {
             var result = await GetReturnAddress(background);
-            if (result !== null) {
+            if (result !== null)
                 if ((await fetch(result)).status === 200) {
                     window.location.assign(GetQuery("yes"));
                     return;
                 }
-            }
         } else {
             var result = await GetReturnAddress(GetQuery("yes"));
             if (result !== null) {
@@ -25,7 +24,7 @@ async function Allow() {
 
 async function GetReturnAddress(address) {
     try {
-        var response = await fetch("/api[PATH_PREFIX]/generate-limited-token?return=" + encodeURIComponent(address) + "&name=" + encodeURIComponent(GetQuery("name")) + "&allowed=" + encodeURIComponent(GetQuery("allowed")));
+        var response = await fetch(`auth-request/generate-limited-token?return=${encodeURIComponent(address)}&name=${encodeURIComponent(GetQuery("name"))}&allowed=${encodeURIComponent(GetQuery("allowed"))}`, {method:"POST"});
         if (response.status === 200)
             return await response.text();
     } catch {
@@ -36,12 +35,8 @@ async function GetReturnAddress(address) {
 
 function GetQuery(q) {
     try {
-        let query = new URLSearchParams(window.location.search);
-        if (query.has(q)) {
-            return query.get(q);
-        } else {
-            return "null";
-        }
+        var query = new URLSearchParams(window.location.search);
+        return query.has(q) ? query.get(q) : "null";
     } catch {
         return "null";
     }
