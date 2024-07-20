@@ -264,7 +264,7 @@ public partial class UsersPlugin : Plugin
                     try
                     {
                         User user = req.UserTable.Register(username, email, password, req);
-                        Presets.WarningMail(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={user.Id}&code={user.MailToken}&user={user.Id}\">here</a> or enter the following code: {user.MailToken}");
+                        Presets.WarningMail(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
                         await req.Write("ok");
                     }
                     catch (Exception ex)
