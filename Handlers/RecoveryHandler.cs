@@ -5,7 +5,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    private static async Task Recovery(Request req)
+    private static async Task HandleRecovery(Request req)
     {
         switch (req.Path)
         {

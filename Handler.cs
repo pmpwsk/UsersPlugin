@@ -7,16 +7,16 @@ public partial class UsersPlugin : Plugin
         switch (Parsers.GetFirstSegment(req.Path, out _))
         {
             case "settings":
-                await Settings(req);
+                await HandleSettings(req);
                 break;
             case "recovery":
-                await Recovery(req);
+                await HandleRecovery(req);
                 break;
             case "users":
-                await Users(req);
+                await HandleUsers(req);
                 break;
             default:
-                await Other(req);
+                await HandleOther(req);
                 break;
         }
     }

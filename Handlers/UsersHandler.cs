@@ -4,7 +4,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    private static Task Users(Request req)
+    private static Task HandleUsers(Request req)
     {
         switch (req.Path)
         {

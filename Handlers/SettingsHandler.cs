@@ -7,7 +7,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin : Plugin
 {
-    private async Task Settings(Request req)
+    private async Task HandleSettings(Request req)
     {
         switch (req.Path)
         {
