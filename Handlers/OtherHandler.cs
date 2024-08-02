@@ -104,7 +104,7 @@ public partial class UsersPlugin : Plugin
                 else req.Status = 400;
             } break;
                 
-            case "/generate-limited-token":
+            case "/auth-request/generate-limited-token":
             { req.ForcePOST(); req.ForceLogin(false);
                 if (req.Query.TryGetValue("name", out var name) && name != "" && name == name.HtmlSafe() && req.Query.TryGetValue("return", out var returnAddress) && req.Query.TryGetValue("allowed", out var limitedToPathsEncoded))
                 {
