@@ -83,7 +83,7 @@ public partial class UsersPlugin : Plugin
 		=> relPath switch
 		{
 			"/2fa.js" => "1719280992497",
-			"/auth-request.js" => "1719438915395",
+			"/auth-request.js" => "1722551602845",
 			"/login.js" => "1719279117889",
 			"/register.js" => "1719436547597",
 			"/verify.js" => "1719436553974",

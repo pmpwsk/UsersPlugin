@@ -5,7 +5,7 @@ async function Allow() {
         if (background !== "null") {
             var result = await GetReturnAddress(background);
             if (result !== null)
-                if ((await fetch(result)).status === 200) {
+                if ((await fetch(result, {method:"POST"})).status === 200) {
                     window.location.assign(GetQuery("yes"));
                     return;
                 }
