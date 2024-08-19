@@ -61,8 +61,8 @@ public partial class UsersPlugin : Plugin
                         new Image(req.User.TwoFactor.TOTP.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
                         new Paragraph("Key: " + req.User.TwoFactor.TOTP.SecretKey)
                     ]));
-                    e.Add(new ContainerElement("Recovery codes:", "Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.Recovery))
-                    { Unsafe = true, Button = new Button("Download", $"2fa/recovery", newTab: true) });
+                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.Recovery)) {Unsafe = true})
+                    { Button = new Button("Download", $"2fa/recovery", newTab: true) });
                     e.Add(new ContainerElement("Confirm:",
                     [
                         new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
