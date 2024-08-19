@@ -38,7 +38,7 @@ public partial class UsersPlugin : Plugin
                 page.Scripts.Add(new Script($"2fa.js"));
                 if (req.User.TwoFactor.TOTPEnabled())
                 { //2fa enabled and verified, show option to disable it
-                    e.Add(new HeadingElement("2FA settings", "Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.<br />Warning: Other devices will remain logged in."));
+                    e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.", "Warning: Other devices will remain logged in."]));
                     e.Add(new ContainerElement(null,
                     [
                         new Heading("Password:"),
@@ -54,7 +54,7 @@ public partial class UsersPlugin : Plugin
                     req.User.TwoFactor.GenerateTOTP();
                     if (req.User.TwoFactor.TOTP == null)
                         throw new Exception("Failed to generate TOTP for the user.");
-                    e.Add(new HeadingElement("2FA settings", "Two-factor authentication is disabled. Follow the steps below to enable it.<br />Warning: Other devices will remain logged in."));
+                    e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is disabled. Follow the steps below to enable it.", "Warning: Other devices will remain logged in."]));
                     e.Add(new ContainerElement("Private key:",
                     [
                         new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
@@ -62,7 +62,7 @@ public partial class UsersPlugin : Plugin
                         new Paragraph("Key: " + req.User.TwoFactor.TOTP.SecretKey)
                     ]));
                     e.Add(new ContainerElement("Recovery codes:", "Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.Recovery))
-                    { Button = new Button("Download", $"2fa/recovery", newTab: true) });
+                    { Unsafe = true, Button = new Button("Download", $"2fa/recovery", newTab: true) });
                     e.Add(new ContainerElement("Confirm:",
                     [
                         new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
@@ -386,7 +386,7 @@ public partial class UsersPlugin : Plugin
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("username.js"));
-                e.Add(new HeadingElement("Username settings", "Warning: Other devices will remain logged in.<br />Current: " + req.User.Username));
+                e.Add(new HeadingElement("Username settings", ["Warning: Other devices will remain logged in.", "Current: " + req.User.Username]));
                 e.Add(new ContainerElement("New username:", new TextBox("Enter a username...", req.User.Username, "username", TextBoxRole.Username, "Continue()")));
                 req.AddAuthElements();
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));

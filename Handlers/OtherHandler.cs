@@ -90,8 +90,8 @@ public partial class UsersPlugin : Plugin
                         new BulletList(limitedToPaths)
                     ]));
                     page.AddError();
-                    e.Add(new ButtonElementJS("Allow", $"{(backgroundDomain == null ? "O" : $"Gives a token to \"{backgroundDomain}\" and o")}pens:<br/>{yes.Before('?').HtmlSafe()}", "Allow()", "green"));
-                    e.Add(new ButtonElement("Reject", $"Opens:<br/>{no.Before('?').HtmlSafe()}", no, "red"));
+                    e.Add(new ButtonElementJS("Allow", $"{(backgroundDomain == null ? "O" : $"Gives a token to \"{backgroundDomain.HtmlSafe()}\" and o")}pens:<br/>{yes.Before('?').HtmlSafe()}", "Allow()", "green") {Unsafe = true});
+                    e.Add(new ButtonElement("Reject", $"Opens:<br/>{no.Before('?').HtmlSafe()}", no.HtmlSafe(), "red") {Unsafe = true});
                     e.Add(new ContainerElement(null,
                     [
                         "Addresses ending with * indicate that the application can access any address starting with the part before the *.",
