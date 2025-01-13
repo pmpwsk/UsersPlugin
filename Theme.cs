@@ -71,6 +71,7 @@ public partial class UsersPlugin : Plugin
     private string Timestamp(string font, string? fontMono, string background, string accent, string design)
         => ((string[])
         [
+            "/theme/base.css",
             $"/theme/f/{font}.css",
             ..(fontMono == null ? (string[])[] : ([$"/theme/f/{fontMono}.css"])),
             $"/theme/b/{background}.css",

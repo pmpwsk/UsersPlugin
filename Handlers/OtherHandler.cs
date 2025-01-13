@@ -328,6 +328,8 @@ public partial class UsersPlugin : Plugin
                     ..GetFile($"/theme/a/{AccentName(accent, background)}.css", req.PluginPathPrefix, domain) ?? [],
                     ..Encoding.UTF8.GetBytes($"\n\n\n/* Background: {background} */\n\n"),
                     ..GetFile($"/theme/b/{background}.css", req.PluginPathPrefix, domain) ?? [],
+                    ..Encoding.UTF8.GetBytes($"\n\n\n/* base.css */\n\n"),
+                    ..GetFile($"/theme/base.css", req.PluginPathPrefix, domain) ?? [],
                     ..Encoding.UTF8.GetBytes($"\n\n\n/* Design: {design} */\n\n"),
                     ..GetFile($"/theme/d/{design}.css", req.PluginPathPrefix, domain) ?? []
                 ]);
