@@ -129,7 +129,7 @@ public partial class UsersPlugin : Plugin
 			"/settings/password.js" => "1719446553660",
 			"/settings/theme.js" => "1719435551060",
 			"/settings/username.js" => "1719438394007",
-			"/theme/base.css" => "1736806208748",
+			"/theme/base.css" => "1736878385960",
 			"/theme/a/blue-dark.css" => "1705337749422",
 			"/theme/a/blue-light.css" => "1705335547954",
 			"/theme/a/green-dark.css" => "1705335236932",

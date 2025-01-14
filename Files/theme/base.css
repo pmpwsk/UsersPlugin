@@ -294,23 +294,23 @@ a.green, div.green, div.buttons a.green {
     color: #44bb44;
 }
 
-ul {
+ol, ul {
     font-size: 1.05rem;
     line-height: 1.2rem;
     color: var(--foreground);
     font-family: var(--font-family);
     margin: 0.15rem 0 0.15rem 0;
     padding: 0 0 0 1rem;
-    list-style-type: none;
+}
+
+ul {
+    list-style-type: "\2013\0020\0020";
 }
 
 li {
-    text-indent: -0.95rem;
+    padding-left: 0.6rem;
+    text-indent: -0.6rem;
 }
-
-    li:before {
-        content: "- ";
-    }
 
 div.nav a.right {
     float: right;
