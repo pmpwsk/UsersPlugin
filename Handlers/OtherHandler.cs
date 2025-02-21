@@ -11,7 +11,7 @@ public partial class UsersPlugin : Plugin
     {
         switch (req.Path)
         {
-            /// OVERVIEW
+            // OVERVIEW
             case "/":
             { req.ForceGET(); req.ForceLogin();
                 req.CreatePage("Account", out _, out var e);
@@ -26,7 +26,7 @@ public partial class UsersPlugin : Plugin
 
 
             
-            /// 2FA
+            // 2FA
             case "/2fa":
             { req.ForceGET();
                 switch (req.LoginState)
@@ -46,10 +46,10 @@ public partial class UsersPlugin : Plugin
                 e.Add(new ContainerElement(null,
                 [
                     new Heading("2FA code / recovery:"),
-                    new TextBox("Enter the current code...", null, "code", TextBoxRole.Username, "Continue()", autofocus: true)
+                    new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true)
                 ]));
                 e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
                 e.Add(new ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
             } break;
             
@@ -141,7 +141,7 @@ public partial class UsersPlugin : Plugin
 
 
 
-            /// LOGIN PAGE
+            // LOGIN PAGE
             case "/login":
             { req.ForceGET();
                 switch (req.LoginState)
@@ -167,7 +167,7 @@ public partial class UsersPlugin : Plugin
                     new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue()"),
                 ]));
                 e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
                 e.Add(new ButtonElement(null, "Account recovery", $"recovery" + req.CurrentRedirectQuery));
                 e.Add(new ButtonElement(null, "Register instead", $"register" + req.CurrentRedirectQuery));
             } break;
@@ -251,7 +251,7 @@ public partial class UsersPlugin : Plugin
                     new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, "Continue()")
                 ]));
                 e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
                 e.Add(new ButtonElement(null, "Log in instead", "login" + req.CurrentRedirectQuery));
             } break;
 
@@ -286,7 +286,7 @@ public partial class UsersPlugin : Plugin
 
 
 
-            /// USER STYLE
+            // USER STYLE
             case "/theme.css":
             { req.ForceGET();
                 ThemeFromQuery(req.Context.Request.QueryString.Value??"", out string font, out string? fontMono, out string background, out string accent, out string design);
@@ -311,7 +311,10 @@ public partial class UsersPlugin : Plugin
                             }
                             else req.Context.Response.Headers.ETag = timestamp;
                         }
-                        catch { }
+                        catch
+                        {
+                            // ignored
+                        }
                     }
                 }
                 await req.WriteBytes(
@@ -366,7 +369,7 @@ public partial class UsersPlugin : Plugin
                     
                     break;
                 }
-            SKIP_QUERY:
+                SKIP_QUERY:
                 if (req.LoginState == LoginState.None)
                     throw new RedirectSignal("login" + req.CurrentRedirectQuery);
                 page.Scripts.Add(Presets.SendRequestScript);
@@ -379,7 +382,7 @@ public partial class UsersPlugin : Plugin
                     new TextBox("Enter the code...", null, "code", onEnter: "Continue()", autofocus: true)
                 ]) { Buttons = [ new ButtonJS("Send again", "Resend()") ] });
                 e.Add(new ButtonElementJS("Continue", null, "Continue()"));
-                Presets.AddError(page);
+                page.AddError();
                 e.Add(new ButtonElement(null, "Change email address", "verify/change"));
                 e.Add(new ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
             } break;
@@ -432,7 +435,7 @@ public partial class UsersPlugin : Plugin
                     new TextBox("Enter your email address...", req.User.MailAddress, "email", onEnter: "Continue()", autofocus: true)
                 ]));
                 e.Add(new ButtonElementJS("Change", null, "Continue()"));
-                Presets.AddError(page);
+                page.AddError();
                 e.Add(new ButtonElement(null, "Back", "../verify" + req.CurrentRedirectQuery));
             } break;
 
