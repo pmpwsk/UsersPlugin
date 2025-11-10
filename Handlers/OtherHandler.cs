@@ -5,7 +5,7 @@ using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
-public partial class UsersPlugin : Plugin
+public partial class UsersPlugin
 {
     private async Task HandleOther(Request req)
     {
@@ -59,9 +59,9 @@ public partial class UsersPlugin : Plugin
                     await req.Write("ok");
                 else if (!req.Query.TryGetValue("code", out var code))
                     throw new BadRequestSignal();
-                else if (!req.User.TwoFactor.TOTPEnabled(out var totp))
+                else if (!req.User.TwoFactor.TOTPEnabled())
                     throw new NotFoundSignal();
-                else if (totp.Validate(code, req, true))
+                else if (req.UserTable.ValidateTOTP(req.User.Id, code, req, true))
                 {
                     await req.Write("ok");
                     Presets.WarningMail(req, req.User, "New login", "Someone just successfully logged into your account.");
@@ -115,7 +115,7 @@ public partial class UsersPlugin : Plugin
                     ]).ToList().AsReadOnly();
                     if (limitedToPaths.Contains(""))
                         throw new BadRequestSignal();
-                    string token = req.User.Auth.AddNewLimited(name, limitedToPaths);
+                    string token = req.UserTable.AddNewLimitedToken(req.User.Id, name, limitedToPaths);
                     AccountManager.GenerateAuthTokenCookieOptions(out var expires, out var sameSite, out var domain, req.Context);
                     await req.Write(returnAddress
                         .Replace("[TOKEN]", req.User.Id + token)
@@ -181,7 +181,7 @@ public partial class UsersPlugin : Plugin
                     User? user = req.UserTable.Login(username, password, req);
                     if (user != null)
                     {
-                        user.Settings.Delete("Delete");
+                        req.UserTable.DeleteSetting(user.Id, "Delete");
                         if (user.TwoFactor.TOTPEnabled())
                             await req.Write("2fa");
                         else
@@ -363,7 +363,7 @@ public partial class UsersPlugin : Plugin
                     
                     if (user.MailToken == null)
                         req.Redirect(req.RedirectUrl);
-                    else if (user.VerifyMail(code, req))
+                    else if (req.UserTable.VerifyMail(req.User.Id, code, req))
                         e.Add(new HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
                     else goto SKIP_QUERY;
                     
@@ -395,7 +395,7 @@ public partial class UsersPlugin : Plugin
                     await req.Write("ok");
                 else if (!req.Query.TryGetValue("code", out var code))
                     throw new BadRequestSignal();
-                else if (req.User.VerifyMail(code, req))
+                else if (req.UserTable.VerifyMail(req.User.Id, code, req))
                     await req.Write("ok");
                 else await req.Write("no");
             } break;
@@ -449,8 +449,8 @@ public partial class UsersPlugin : Plugin
                 {
                     try
                     {
-                        req.User.SetMailAddress(mail, req.UserTable);
-                        req.User.SetNewMailToken();
+                        req.UserTable.SetMailAddress(req.User.Id, mail);
+                        req.UserTable.SetNewMailToken(req.User.Id);
                         Presets.WarningMail(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
                         await req.Write("ok");
                     }

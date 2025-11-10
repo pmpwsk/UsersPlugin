@@ -5,7 +5,7 @@ using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
-public partial class UsersPlugin : Plugin
+public partial class UsersPlugin
 {
     private async Task HandleSettings(Request req)
     {
@@ -51,7 +51,7 @@ public partial class UsersPlugin : Plugin
                 }
                 else
                 { //2fa not fully enabled, show option to enable it
-                    req.User.TwoFactor.GenerateTOTP();
+                    req.UserTable.GenerateTOTP(req.User.Id);
                     if (req.User.TwoFactor.TOTP == null)
                         throw new Exception("Failed to generate TOTP for the user.");
                     e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is disabled. Follow the steps below to enable it.", "Warning: Other devices will remain logged in."]));
@@ -59,9 +59,9 @@ public partial class UsersPlugin : Plugin
                     [
                         new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
                         new Image(req.User.TwoFactor.TOTP.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
-                        new Paragraph("Key: " + req.User.TwoFactor.TOTP.SecretKey)
+                        new Paragraph("Key: " + req.User.TwoFactor.TOTP.SecretKeyString)
                     ]));
-                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.Recovery)) {Unsafe = true})
+                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.RecoveryCodes)) {Unsafe = true})
                     { Button = new Button("Download", $"2fa/recovery", newTab: true) });
                     e.Add(new ContainerElement("Confirm:",
                     [
@@ -80,7 +80,7 @@ public partial class UsersPlugin : Plugin
             { req.ForceGET(); req.ForceLogin(false);
                 if (req.User.TwoFactor.TOTP == null || req.User.TwoFactor.TOTPEnabled(out _))
                     req.Status = 404;
-                else await req.WriteBytesAsDownload(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.Recovery)), $"2FA Recovery Codes ({req.Domain}).txt");
+                else await req.WriteBytesAsDownload(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.RecoveryCodes)), $"2FA Recovery Codes ({req.Domain}).txt");
             } break;
             
             case "/settings/2fa/change":
@@ -88,9 +88,9 @@ public partial class UsersPlugin : Plugin
                 if (req.Query.TryGetValue("method", out var method) && req.Query.TryGetValue("code", out var code) && req.Query.TryGetValue("password", out var password))
                     if (req.User.TwoFactor.TOTP == null)
                         await req.Write("2FA not enabled.");
-                    else if (!req.User.ValidatePassword(password, req))
+                    else if (!req.UserTable.ValidatePassword(req.User.Id, password, req))
                         await req.Write("no");
-                    else if (!req.User.TwoFactor.TOTP.Validate(code, req, method != "enable"))
+                    else if (!req.UserTable.ValidateTOTP(req.User.Id, code, req, method != "enable"))
                         await req.Write("no");
                     else switch (method)
                     {
@@ -99,13 +99,13 @@ public partial class UsersPlugin : Plugin
                                 await req.Write("2FA already enabled.");
                             else
                             {
-                                req.User.TwoFactor.TOTP.Verify();
+                                req.UserTable.VerifyTOTP(req.User.Id);
                                 Presets.WarningMail(req, req.User, "2FA enabled", "Two-factor authentication has just been enabled.");
                                 await req.Write("ok");
                             }
                             break;
                         case "disable":
-                            req.User.TwoFactor.DisableTOTP();
+                            req.UserTable.DisableTOTP(req.User.Id);
                             Presets.WarningMail(req, req.User, "2FA disabled", "Two-factor authentication has just been disabled.");
                             await req.Write("ok");
                             break;
@@ -154,7 +154,7 @@ public partial class UsersPlugin : Plugin
                     if (kv.Equals(default(KeyValuePair<string, AuthTokenData>)))
                         req.Status = 404;
                     else if (kv.Value.FriendlyName == name && kv.Value.Expires.Ticks == ticks)
-                        req.User.Auth.Delete(kv.Key);
+                        req.UserTable.DeleteToken(req.User.Id, kv.Key);
                     else req.Status = 404;
                 }
                 else req.Status = 400;
@@ -185,8 +185,8 @@ public partial class UsersPlugin : Plugin
                 if (!await req.Auth(req.User))
                     break;
                 req.Cookies.Delete("AuthToken");
-                req.User.Auth.DeleteAll();
-                req.User.Settings["Delete"] = DateTime.UtcNow.Ticks.ToString();
+                req.UserTable.DeleteAllTokens(req.User.Id);
+                req.UserTable.SetSetting(req.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
                 Presets.WarningMail(req, req.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
                 await req.Write("ok");
             } break;
@@ -226,7 +226,7 @@ public partial class UsersPlugin : Plugin
 
             case "/settings/email/cancel":
             { req.ForcePOST(); req.ForceLogin(false);
-                req.User.Settings.Delete("EmailChange");
+                req.UserTable.DeleteSetting(req.User.Id, "EmailChange");
             } break;
 
             case "/settings/email/resend":
@@ -257,9 +257,9 @@ public partial class UsersPlugin : Plugin
                 try
                 {
                     string oldMail = req.User.MailAddress;
-                    req.User.SetMailAddress(mail, req.UserTable);
-                    Presets.WarningMail(req, req.User, "Email changed", $"Your email was just changed from {oldMail} to {mail}.", oldMail);
-                    req.User.Settings.Delete("EmailChange");
+                    req.UserTable.SetMailAddress(req.User.Id, mail);
+                    Presets.WarningMail(req, req.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
+                    req.UserTable.DeleteSetting(req.User.Id, "EmailChange");
                     await req.Write("ok");
                 }
                 catch (Exception ex)
@@ -289,7 +289,7 @@ public partial class UsersPlugin : Plugin
                 else
                 {
                     string code = Parsers.RandomString(10);
-                    req.User.Settings["EmailChange"] = $"{HttpUtility.UrlEncode(email)}&{code}";
+                    req.UserTable.SetSetting(req.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
                     Presets.WarningMail(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
                     await req.Write("ok");
                 }
@@ -329,7 +329,7 @@ public partial class UsersPlugin : Plugin
                     break;
                 try
                 {
-                    req.User.SetPassword(password);
+                    req.UserTable.SetPassword(req.User.Id, password);
                     Presets.WarningMail(req, req.User, "Password changed", "Your password was just changed.");
                     await req.Write("ok");
                 }
@@ -346,7 +346,7 @@ public partial class UsersPlugin : Plugin
 
             case "/settings/password/cancel-reset":
             { req.ForcePOST(); req.ForceLogin(false);
-                req.User.Settings.Delete("PasswordReset");
+                req.UserTable.DeleteSetting(req.User.Id, "PasswordReset");
             } break;
 
 
@@ -372,7 +372,7 @@ public partial class UsersPlugin : Plugin
             { req.ForcePOST(); req.ForceLogin(false);
                 if (!ThemeFromQuery(req.Context.Request.QueryString.Value ?? "", out string font, out _, out string background, out string accent, out string design))
                     req.Status = 400;
-                req.User.Settings["Theme"] = $"?f={font}&b={background}&a={accent}&d={design}";
+                req.UserTable.SetSetting(req.User.Id, "Theme", $"?f={font}&b={background}&a={accent}&d={design}");
             }
             break;
 
@@ -401,9 +401,8 @@ public partial class UsersPlugin : Plugin
                     break;
                 try
                 {
-                    string oldUsername = req.User.Username;
-                    req.User.SetUsername(username, req.UserTable);
-                    Presets.WarningMail(req, req.User, "Username changed", $"Your username was just changed from {oldUsername} to {username}.");
+                    req.UserTable.SetUsername(req.User.Id, username);
+                    Presets.WarningMail(req, req.User, "Username changed", $"Your username was just changed to {username}.");
                     await req.Write("ok");
                 }
                 catch (Exception ex)

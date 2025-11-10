@@ -1,6 +1,6 @@
 namespace uwap.WebFramework.Plugins;
 
-public partial class UsersPlugin : Plugin
+public partial class UsersPlugin
 {
 	public override byte[]? GetFile(string relPath, string pathPrefix, string domain)
 		=> relPath switch

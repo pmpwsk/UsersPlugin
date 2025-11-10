@@ -3,7 +3,7 @@ using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
-public partial class UsersPlugin : Plugin
+public partial class UsersPlugin
 {
     private static async Task HandleRecovery(Request req)
     {
@@ -137,7 +137,7 @@ public partial class UsersPlugin : Plugin
                     break;
                 }
                 string code = Parsers.RandomString(64);
-                user.Settings["PasswordReset"] = code;
+                req.UserTable.SetSetting(user.Id, "PasswordReset", code);
                 string url = $"{req.PluginPathPrefix}/recovery/password?token={user.Id}{code}";
                 Presets.WarningMail(req, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
                 await req.Write("ok");
@@ -162,9 +162,9 @@ public partial class UsersPlugin : Plugin
                 }
                 try
                 {
-                    user.SetPassword(password);
+                    users.SetPassword(user.Id, password);
                     Presets.WarningMail(req, user, "Password recovery", "Your password was just changed by recovery.");
-                    user.Settings.Delete("PasswordReset");
+                    users.DeleteSetting(user.Id, "PasswordReset");
                     await req.Write("ok");
                 }
                 catch (Exception ex)

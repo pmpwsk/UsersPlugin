@@ -2,7 +2,7 @@ using uwap.WebFramework.Elements;
 
 namespace uwap.WebFramework.Plugins;
 
-public partial class UsersPlugin : Plugin
+public partial class UsersPlugin
 {
     private static Task HandleUsers(Request req)
     {
@@ -15,8 +15,8 @@ public partial class UsersPlugin : Plugin
                 page.Navigation.Add(new Button("Back", ".", "right"));
                 req.ForceAdmin();
                 e.Add(new HeadingElement("Manage users"));
-                foreach (var kv in req.UserTable)
-                    e.Add(new ButtonElement(kv.Value.Username, kv.Value.MailAddress, $"users/user?id={kv.Value.Id}"));
+                foreach (var user in req.UserTable.ListAll())
+                    e.Add(new ButtonElement(user.Username, user.MailAddress, $"users/user?id={user.Id}"));
             } break;
 
 
@@ -55,43 +55,34 @@ public partial class UsersPlugin : Plugin
                 ])
                 { Button = new ButtonJS("Set value", $"SetSetting('{id}')", "green") });
                 foreach (var key in user.Settings.ListKeys())
-                    e.Add(new ContainerElement(key, user.Settings[key]) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
+                    e.Add(new ContainerElement(key, user.Settings.Get(key)) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
             } break;
             
             case "/users/user/settings/set":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key) && req.Query.TryGetValue("value", out var value))
-                    if (req.UserTable.TryGetValue(id, out var user))
-                        user.Settings[key] = value;
-                    else req.Status = 404;
+                    req.UserTable.SetSetting(id, key, value);
                 else req.Status = 400;
             } break;
             
             case "/users/user/settings/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key))
-                    if (req.UserTable.TryGetValue(id, out var user))
-                        user.Settings.Delete(key);
-                    else req.Status = 404;
+                    req.UserTable.DeleteSetting(id, key);
                 else req.Status = 400;
             } break;
 
             case "/users/user/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id))
-                {
-                    if (!req.UserTable.Delete(id))
-                        req.Status = 404;
-                }
+                    req.UserTable.Delete(id);
                 else req.Status = 400;
             } break;
 
             case "/users/user/set-access-level":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out string? id) && req.Query.TryGetValue("value", out ushort value))
-                    if (req.UserTable.TryGetValue(id, out var user))
-                        user.AccessLevel = value;
-                    else req.Status = 404;
+                    req.UserTable.SetAccessLevel(id, value);
                 else req.Status = 400;
             } break;
 
