@@ -63,14 +63,14 @@ public partial class UsersPlugin
                     await req.Write("ok");
                 if (!req.Query.TryGetValue("email", out var email))
                     throw new BadRequestSignal();
-                User? user = req.UserTable.FindByMailAddress(email);
+                User? user = await req.UserTable.FindByMailAddressAsync(email);
                 if (user == null)
                 {
                     AccountManager.ReportFailedAuth(req.Context);
                     await req.Write("no");
                     break;
                 }
-                Presets.WarningMail(req, user, "Username recovery", $"You requested your username, it is: {user.Username}");
+                await Presets.WarningMailAsync(req, user, "Username recovery", $"You requested your username, it is: {user.Username}");
                 await req.Write("ok");
             }
             break;
@@ -98,7 +98,8 @@ public partial class UsersPlugin
                 {
                     string id = token[..12];
                     string code = token[12..];
-                    if (req.UserTable.TryGetValue(id, out var user) && user.Settings.TryGet("PasswordReset") == code)
+                    var user = await req.UserTable.GetByIdNullableAsync(id);
+                    if (user != null && user.Settings.TryGet("PasswordReset") == code)
                     {
                         //setting a new password
                         e.Add(new HeadingElement("Password recovery", "Enter a new password and confirm it below."));
@@ -129,7 +130,7 @@ public partial class UsersPlugin
                     await req.Write("ok");
                 if (!req.Query.TryGetValue("email", out var email))
                     throw new BadRequestSignal();
-                User? user = req.UserTable.FindByMailAddress(email);
+                User? user = await req.UserTable.FindByMailAddressAsync(email);
                 if (user == null)
                 {
                     AccountManager.ReportFailedAuth(req.Context);
@@ -137,9 +138,9 @@ public partial class UsersPlugin
                     break;
                 }
                 string code = Parsers.RandomString(64);
-                req.UserTable.SetSetting(user.Id, "PasswordReset", code);
+                await req.UserTable.SetSettingAsync(user.Id, "PasswordReset", code);
                 string url = $"{req.PluginPathPrefix}/recovery/password?token={user.Id}{code}";
-                Presets.WarningMail(req, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
+                await Presets.WarningMailAsync(req, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
                 await req.Write("ok");
             } break;
 
@@ -152,7 +153,8 @@ public partial class UsersPlugin
                 string id = token.Remove(12);
                 string code = token.Remove(0, 12);
                 var users = req.UserTable;
-                if (!(users.TryGetValue(id, out var user) && user.Settings.TryGetValue("PasswordReset", out var existingCode)))
+                var user = await users.GetByIdNullableAsync(id);
+                if (user == null || !user.Settings.TryGetValue("PasswordReset", out var existingCode))
                     throw new NotFoundSignal();
                 if (existingCode != code)
                 {
@@ -162,9 +164,9 @@ public partial class UsersPlugin
                 }
                 try
                 {
-                    users.SetPassword(user.Id, password);
-                    Presets.WarningMail(req, user, "Password recovery", "Your password was just changed by recovery.");
-                    users.DeleteSetting(user.Id, "PasswordReset");
+                    await users.SetPasswordAsync(user.Id, password);
+                    await Presets.WarningMailAsync(req, user, "Password recovery", "Your password was just changed by recovery.");
+                    await users.DeleteSettingAsync(user.Id, "PasswordReset");
                     await req.Write("ok");
                 }
                 catch (Exception ex)

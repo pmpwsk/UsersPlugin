@@ -47,21 +47,19 @@ public partial class UsersPlugin
                         new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('disable')")
                     ]));
                     e.Add(new ButtonElementJS("Disable", null, "Continue('disable')", id: "continueButton"));
-                    Presets.AddError(page);
+                    page.AddError();
                 }
                 else
                 { //2fa not fully enabled, show option to enable it
-                    req.UserTable.GenerateTOTP(req.User.Id);
-                    if (req.User.TwoFactor.TOTP == null)
-                        throw new Exception("Failed to generate TOTP for the user.");
+                    var totp = await req.UserTable.GenerateTOTPAsync(req.User.Id);
                     e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is disabled. Follow the steps below to enable it.", "Warning: Other devices will remain logged in."]));
                     e.Add(new ContainerElement("Private key:",
                     [
                         new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
-                        new Image(req.User.TwoFactor.TOTP.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
-                        new Paragraph("Key: " + req.User.TwoFactor.TOTP.SecretKeyString)
+                        new Image(totp.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
+                        new Paragraph("Key: " + totp.SecretKeyString)
                     ]));
-                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", req.User.TwoFactor.TOTP.RecoveryCodes)) {Unsafe = true})
+                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", totp.RecoveryCodes)) {Unsafe = true})
                     { Button = new Button("Download", $"2fa/recovery", newTab: true) });
                     e.Add(new ContainerElement("Confirm:",
                     [
@@ -72,7 +70,7 @@ public partial class UsersPlugin
                         new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
                     ]));
                     e.Add(new ButtonElementJS("Enable", null, "Continue('enable')", id: "continueButton"));
-                    Presets.AddError(page);
+                    page.AddError();
                 }
             } break;
 
@@ -88,9 +86,9 @@ public partial class UsersPlugin
                 if (req.Query.TryGetValue("method", out var method) && req.Query.TryGetValue("code", out var code) && req.Query.TryGetValue("password", out var password))
                     if (req.User.TwoFactor.TOTP == null)
                         await req.Write("2FA not enabled.");
-                    else if (!req.UserTable.ValidatePassword(req.User.Id, password, req))
+                    else if (!await req.UserTable.ValidatePasswordAsync(req.User.Id, password, req))
                         await req.Write("no");
-                    else if (!req.UserTable.ValidateTOTP(req.User.Id, code, req, method != "enable"))
+                    else if (!await req.UserTable.ValidateTOTPAsync(req.User.Id, code, req, method != "enable"))
                         await req.Write("no");
                     else switch (method)
                     {
@@ -99,14 +97,14 @@ public partial class UsersPlugin
                                 await req.Write("2FA already enabled.");
                             else
                             {
-                                req.UserTable.VerifyTOTP(req.User.Id);
-                                Presets.WarningMail(req, req.User, "2FA enabled", "Two-factor authentication has just been enabled.");
+                                await req.UserTable.VerifyTOTPAsync(req.User.Id);
+                                await Presets.WarningMailAsync(req, req.User, "2FA enabled", "Two-factor authentication has just been enabled.");
                                 await req.Write("ok");
                             }
                             break;
                         case "disable":
-                            req.UserTable.DisableTOTP(req.User.Id);
-                            Presets.WarningMail(req, req.User, "2FA disabled", "Two-factor authentication has just been disabled.");
+                            await req.UserTable.DisableTOTPAsync(req.User.Id);
+                            await Presets.WarningMailAsync(req, req.User, "2FA disabled", "Two-factor authentication has just been disabled.");
                             await req.Write("ok");
                             break;
                         default:
@@ -154,7 +152,7 @@ public partial class UsersPlugin
                     if (kv.Equals(default(KeyValuePair<string, AuthTokenData>)))
                         req.Status = 404;
                     else if (kv.Value.FriendlyName == name && kv.Value.Expires.Ticks == ticks)
-                        req.UserTable.DeleteToken(req.User.Id, kv.Key);
+                        await req.UserTable.DeleteTokenAsync(req.User.Id, kv.Key);
                     else req.Status = 404;
                 }
                 else req.Status = 400;
@@ -177,7 +175,7 @@ public partial class UsersPlugin
                 ]));
                 req.AddAuthElements();
                 e.Add(new ButtonElementJS("Delete account :(", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
             } break;
 
             case "/settings/delete/try":
@@ -185,9 +183,9 @@ public partial class UsersPlugin
                 if (!await req.Auth(req.User))
                     break;
                 req.Cookies.Delete("AuthToken");
-                req.UserTable.DeleteAllTokens(req.User.Id);
-                req.UserTable.SetSetting(req.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
-                Presets.WarningMail(req, req.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
+                await req.UserTable.DeleteAllTokensAsync(req.User.Id);
+                await req.UserTable.SetSettingAsync(req.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
+                await Presets.WarningMailAsync(req, req.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
                 await req.Write("ok");
             } break;
 
@@ -210,7 +208,7 @@ public partial class UsersPlugin
                     e.Add(new ContainerElement("Verification code", new TextBox("Enter the code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true))
                     { Button = new ButtonJS("Send again", "Resend()", id: "resendButton") });
                     e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
-                    Presets.AddError(page);
+                    page.AddError();
                 }
                 else
                 {
@@ -220,13 +218,13 @@ public partial class UsersPlugin
                     e.Add(new ContainerElement("New email:", new TextBox("Enter the email address...", req.User.MailAddress, "email", TextBoxRole.Email, "Continue()")));
                     req.AddAuthElements();
                     e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                    Presets.AddError(page);
+                    page.AddError();
                 }
             } break;
 
             case "/settings/email/cancel":
             { req.ForcePOST(); req.ForceLogin(false);
-                req.UserTable.DeleteSetting(req.User.Id, "EmailChange");
+                await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
             } break;
 
             case "/settings/email/resend":
@@ -236,7 +234,7 @@ public partial class UsersPlugin
                 string[] setting = settingRaw.Split('&');
                 string mail = HttpUtility.UrlDecode(setting[0]);
                 string existingCode = setting[1];
-                Presets.WarningMail(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
+                await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
             } break;
 
             case "/settings/email/verify":
@@ -257,9 +255,9 @@ public partial class UsersPlugin
                 try
                 {
                     string oldMail = req.User.MailAddress;
-                    req.UserTable.SetMailAddress(req.User.Id, mail);
-                    Presets.WarningMail(req, req.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
-                    req.UserTable.DeleteSetting(req.User.Id, "EmailChange");
+                    await req.UserTable.SetMailAddressAsync(req.User.Id, mail);
+                    await Presets.WarningMailAsync(req, req.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
+                    await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
                     await req.Write("ok");
                 }
                 catch (Exception ex)
@@ -284,13 +282,13 @@ public partial class UsersPlugin
                     await req.Write("same");
                 else if (!AccountManager.CheckMailAddressFormat(email))
                     await req.Write("bad");
-                else if (req.UserTable.FindByMailAddress(email) != null)
+                else if (await req.UserTable.FindByMailAddressAsync(email) != null)
                     await req.Write("exists");
                 else
                 {
                     string code = Parsers.RandomString(10);
-                    req.UserTable.SetSetting(req.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
-                    Presets.WarningMail(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
+                    await req.UserTable.SetSettingAsync(req.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
+                    await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
                     await req.Write("ok");
                 }
             } break;
@@ -318,7 +316,7 @@ public partial class UsersPlugin
                 ]));
                 req.AddAuthElements();
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
             } break;
             
             case "/settings/password/set":
@@ -329,8 +327,8 @@ public partial class UsersPlugin
                     break;
                 try
                 {
-                    req.UserTable.SetPassword(req.User.Id, password);
-                    Presets.WarningMail(req, req.User, "Password changed", "Your password was just changed.");
+                    await req.UserTable.SetPasswordAsync(req.User.Id, password);
+                    await Presets.WarningMailAsync(req, req.User, "Password changed", "Your password was just changed.");
                     await req.Write("ok");
                 }
                 catch (Exception ex)
@@ -346,7 +344,7 @@ public partial class UsersPlugin
 
             case "/settings/password/cancel-reset":
             { req.ForcePOST(); req.ForceLogin(false);
-                req.UserTable.DeleteSetting(req.User.Id, "PasswordReset");
+                await req.UserTable.DeleteSettingAsync(req.User.Id, "PasswordReset");
             } break;
 
 
@@ -372,7 +370,7 @@ public partial class UsersPlugin
             { req.ForcePOST(); req.ForceLogin(false);
                 if (!ThemeFromQuery(req.Context.Request.QueryString.Value ?? "", out string font, out _, out string background, out string accent, out string design))
                     req.Status = 400;
-                req.UserTable.SetSetting(req.User.Id, "Theme", $"?f={font}&b={background}&a={accent}&d={design}");
+                await req.UserTable.SetSettingAsync(req.User.Id, "Theme", $"?f={font}&b={background}&a={accent}&d={design}");
             }
             break;
 
@@ -390,7 +388,7 @@ public partial class UsersPlugin
                 e.Add(new ContainerElement("New username:", new TextBox("Enter a username...", req.User.Username, "username", TextBoxRole.Username, "Continue()")));
                 req.AddAuthElements();
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
-                Presets.AddError(page);
+                page.AddError();
             } break;
                 
             case "/settings/username/set":
@@ -401,8 +399,8 @@ public partial class UsersPlugin
                     break;
                 try
                 {
-                    req.UserTable.SetUsername(req.User.Id, username);
-                    Presets.WarningMail(req, req.User, "Username changed", $"Your username was just changed to {username}.");
+                    await req.UserTable.SetUsernameAsync(req.User.Id, username);
+                    await Presets.WarningMailAsync(req, req.User, "Username changed", $"Your username was just changed to {username}.");
                     await req.Write("ok");
                 }
                 catch (Exception ex)

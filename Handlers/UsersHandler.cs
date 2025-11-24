@@ -4,7 +4,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Task HandleUsers(Request req)
+    private static async Task HandleUsers(Request req)
     {
         switch (req.Path)
         {
@@ -15,7 +15,7 @@ public partial class UsersPlugin
                 page.Navigation.Add(new Button("Back", ".", "right"));
                 req.ForceAdmin();
                 e.Add(new HeadingElement("Manage users"));
-                foreach (var user in req.UserTable.ListAll())
+                foreach (var user in await req.UserTable.ListAllAsync())
                     e.Add(new ButtonElement(user.Username, user.MailAddress, $"users/user?id={user.Id}"));
             } break;
 
@@ -30,7 +30,8 @@ public partial class UsersPlugin
                 req.ForceAdmin();
                 if (!req.Query.TryGetValue("id", out var id))
                     throw new BadRequestSignal();
-                if (!req.UserTable.TryGetValue(id, out var user))
+                var user = await req.UserTable.GetByIdNullableAsync(id);
+                if (user == null)
                     throw new NotFoundSignal();
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("user.js"));
@@ -61,28 +62,28 @@ public partial class UsersPlugin
             case "/users/user/settings/set":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key) && req.Query.TryGetValue("value", out var value))
-                    req.UserTable.SetSetting(id, key, value);
+                    await req.UserTable.SetSettingAsync(id, key, value);
                 else req.Status = 400;
             } break;
             
             case "/users/user/settings/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key))
-                    req.UserTable.DeleteSetting(id, key);
+                    await req.UserTable.DeleteSettingAsync(id, key);
                 else req.Status = 400;
             } break;
 
             case "/users/user/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out var id))
-                    req.UserTable.Delete(id);
+                    await req.UserTable.DeleteAsync(id);
                 else req.Status = 400;
             } break;
 
             case "/users/user/set-access-level":
             { req.ForcePOST(); req.ForceAdmin(false);
                 if (req.Query.TryGetValue("id", out string? id) && req.Query.TryGetValue("value", out ushort value))
-                    req.UserTable.SetAccessLevel(id, value);
+                    await req.UserTable.SetAccessLevelAsync(id, value);
                 else req.Status = 400;
             } break;
 
@@ -95,7 +96,5 @@ public partial class UsersPlugin
                 req.Status = 404;
                 break;
         }
-
-        return Task.CompletedTask;
     }
 }

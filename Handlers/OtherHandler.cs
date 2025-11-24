@@ -61,10 +61,10 @@ public partial class UsersPlugin
                     throw new BadRequestSignal();
                 else if (!req.User.TwoFactor.TOTPEnabled())
                     throw new NotFoundSignal();
-                else if (req.UserTable.ValidateTOTP(req.User.Id, code, req, true))
+                else if (await req.UserTable.ValidateTOTPAsync(req.User.Id, code, req, true))
                 {
                     await req.Write("ok");
-                    Presets.WarningMail(req, req.User, "New login", "Someone just successfully logged into your account.");
+                    await Presets.WarningMailAsync(req, req.User, "New login", "Someone just successfully logged into your account.");
                 }
                 else await req.Write("no");
             } break;
@@ -115,14 +115,14 @@ public partial class UsersPlugin
                     ]).ToList().AsReadOnly();
                     if (limitedToPaths.Contains(""))
                         throw new BadRequestSignal();
-                    string token = req.UserTable.AddNewLimitedToken(req.User.Id, name, limitedToPaths);
+                    string token = await req.UserTable.AddNewLimitedTokenAsync(req.User.Id, name, limitedToPaths);
                     AccountManager.GenerateAuthTokenCookieOptions(out var expires, out var sameSite, out var domain, req.Context);
                     await req.Write(returnAddress
                         .Replace("[TOKEN]", req.User.Id + token)
                         .Replace("[EXPIRES]", expires.Ticks.ToString())
                         .Replace("[SAMESITE]", sameSite.ToString())
                         .Replace("[DOMAIN]", domain));
-                    Presets.WarningMail(req, req.User, $"App '{name}' was granted access", $"The app '{name}' has just been granted limited access to your account. You can view and manage apps with access in your account settings.");
+                    await Presets.WarningMailAsync(req, req.User, $"App '{name}' was granted access", $"The app '{name}' has just been granted limited access to your account. You can view and manage apps with access in your account settings.");
                 }
                 else req.Status = 400;
             } break;
@@ -178,15 +178,16 @@ public partial class UsersPlugin
                     await req.Write("ok");
                 else if (req.Query.TryGetValue("username", out var username) && req.Query.TryGetValue("password", out var password))
                 {
-                    User? user = req.UserTable.Login(username, password, req);
+                    User? user = await req.UserTable.LoginAsync(username, password, req);
                     if (user != null)
                     {
-                        req.UserTable.DeleteSetting(user.Id, "Delete");
+                        if (user.Settings.ContainsKey("Delete"))
+                            await req.UserTable.DeleteSettingAsync(user.Id, "Delete");
                         if (user.TwoFactor.TOTPEnabled())
                             await req.Write("2fa");
                         else
                         {
-                            Presets.WarningMail(req, user, "New login", "Someone just successfully logged into your account.");
+                            await Presets.WarningMailAsync(req, user, "New login", "Someone just successfully logged into your account.");
                             if (user.MailToken == null)
                                 await req.Write("ok");
                             else await req.Write("verify");
@@ -203,7 +204,7 @@ public partial class UsersPlugin
             // LOGOUT
             case "/logout":
             { req.ForceGET();
-                req.UserTable.Logout(req);
+                await req.UserTable.LogoutAsync(req);
                 req.Redirect(req.RedirectUrl);
             } break;
 
@@ -214,7 +215,7 @@ public partial class UsersPlugin
             case "/logout-others":
             { req.ForceGET(); req.ForceLogin();
                 req.CreatePage("Logout others", out var _, out var e);
-                req.UserTable.LogoutOthers(req);
+                await req.UserTable.LogoutOthersAsync(req);
                 e.Add(new HeadingElement("Success", "Successfully logged out all other devices and browsers."));
                 e.Add(new ButtonElement("Back to account", null, "."));
             } break;
@@ -263,8 +264,8 @@ public partial class UsersPlugin
                 {
                     try
                     {
-                        User user = req.UserTable.Register(username, email, password, req);
-                        Presets.WarningMail(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                        User user = await req.UserTable.RegisterAsync(username, email, password, req);
+                        await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
                         await req.Write("ok");
                     }
                     catch (Exception ex)
@@ -344,34 +345,41 @@ public partial class UsersPlugin
             // VERIFY EMAIL ADDRESS
             case "/verify":
             { req.ForceGET();
-                switch (req.LoginState)
-                {
-                    case LoginState.LoggedIn:
-                        throw new RedirectSignal(req.RedirectUrl);
-                    case LoginState.Needs2FA:
-                        throw new RedirectSignal("2fa" + req.CurrentRedirectQuery);
-                }
                 req.CreatePage("Verify", out var page, out var e);
                 if (req.Query.TryGetValue("user", out var uid) && req.Query.TryGetValue("code", out var code))
                 {
                     User user;
                     if (req.HasUser && req.User.Id == uid)
                         user = req.User;
-                    else if (req.UserTable.TryGetValue(uid, out var u))
-                        user = u;
-                    else goto SKIP_QUERY;
+                    else
+                    {
+                        var u = await req.UserTable.GetByIdNullableAsync(uid);
+                        if (u != null)
+                            user = u;
+                        else goto SKIP_QUERY;
+                    }
                     
                     if (user.MailToken == null)
+                    {
                         req.Redirect(req.RedirectUrl);
-                    else if (req.UserTable.VerifyMail(req.User.Id, code, req))
+                        break;
+                    }
+                    else if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
+                    {
                         e.Add(new HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
-                    else goto SKIP_QUERY;
-                    
-                    break;
+                        break;
+                    }
                 }
                 SKIP_QUERY:
-                if (req.LoginState == LoginState.None)
-                    throw new RedirectSignal("login" + req.CurrentRedirectQuery);
+                switch (req.LoginState)
+                {
+                    case LoginState.LoggedIn:
+                        throw new RedirectSignal(req.RedirectUrl);
+                    case LoginState.Needs2FA:
+                        throw new RedirectSignal("2fa" + req.CurrentRedirectQuery);
+                    case LoginState.None:
+                        throw new RedirectSignal("login" + req.CurrentRedirectQuery);
+                }
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(Presets.RedirectScript);
                 page.Scripts.Add(new Script("verify.js"));
@@ -395,7 +403,7 @@ public partial class UsersPlugin
                     await req.Write("ok");
                 else if (!req.Query.TryGetValue("code", out var code))
                     throw new BadRequestSignal();
-                else if (req.UserTable.VerifyMail(req.User.Id, code, req))
+                else if (await req.UserTable.VerifyMailAsync(req.User.Id, code, req))
                     await req.Write("ok");
                 else await req.Write("no");
             } break;
@@ -406,7 +414,7 @@ public partial class UsersPlugin
                     throw new ForbiddenSignal();
                 else if (req.User.MailToken == null)
                     break;
-                Presets.WarningMail(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                await Presets.WarningMailAsync(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
             } break;
 
 
@@ -449,9 +457,9 @@ public partial class UsersPlugin
                 {
                     try
                     {
-                        req.UserTable.SetMailAddress(req.User.Id, mail);
-                        req.UserTable.SetNewMailToken(req.User.Id);
-                        Presets.WarningMail(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                        await req.UserTable.SetMailAddressAsync(req.User.Id, mail);
+                        await req.UserTable.SetNewMailTokenAsync(req.User.Id);
+                        await Presets.WarningMailAsync(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.Context.ProtoHost()}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
                         await req.Write("ok");
                     }
                     catch (Exception ex)
