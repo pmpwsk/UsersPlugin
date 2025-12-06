@@ -2,19 +2,20 @@ using System.Text;
 using System.Web;
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Elements;
+using uwap.WebFramework.Responses;
 
 namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private async Task HandleSettings(Request req)
+    private async Task<IResponse> HandleSettings(Request req)
     {
         switch (req.Path)
         {
             // MAIN SETTINGS PAGE
             case "/settings":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Settings", out var page, out var e);
+                Presets.CreatePage(req, "Settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", ".", "right"));
                 e.Add(new HeadingElement("Settings", ""));
                 e.Add(new ButtonElement("Theme", null, "settings/theme"));
@@ -24,7 +25,8 @@ public partial class UsersPlugin
                 e.Add(new ButtonElement("Two-factor authentication", null, "settings/2fa"));
                 e.Add(new ButtonElement("Applications", null, "settings/apps"));
                 e.Add(new ButtonElement("Delete account", null, "settings/delete"));
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
 
 
@@ -32,7 +34,7 @@ public partial class UsersPlugin
             // 2FA SETTINGS
             case "/settings/2fa":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("2FA settings", out var page, out var e);
+                Presets.CreatePage(req, "2FA settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script($"2fa.js"));
@@ -72,47 +74,44 @@ public partial class UsersPlugin
                     e.Add(new ButtonElementJS("Enable", null, "Continue('enable')", id: "continueButton"));
                     page.AddError();
                 }
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
             case "/settings/2fa/recovery":
             { req.ForceGET(); req.ForceLogin(false);
                 if (req.User.TwoFactor.TOTP == null || req.User.TwoFactor.TOTPEnabled(out _))
-                    req.Status = 404;
-                else await req.WriteBytesAsDownload(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.RecoveryCodes)), $"2FA Recovery Codes ({req.Domain}).txt");
-            } break;
+                    return StatusResponse.NotFound;
+                else
+                    return new ByteArrayDownloadResponse(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.RecoveryCodes)), $"2FA Recovery Codes ({req.Domain}).txt", null);
+            }
             
             case "/settings/2fa/change":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (req.Query.TryGetValue("method", out var method) && req.Query.TryGetValue("code", out var code) && req.Query.TryGetValue("password", out var password))
-                    if (req.User.TwoFactor.TOTP == null)
-                        await req.Write("2FA not enabled.");
-                    else if (!await req.UserTable.ValidatePasswordAsync(req.User.Id, password, req))
-                        await req.Write("no");
-                    else if (!await req.UserTable.ValidateTOTPAsync(req.User.Id, code, req, method != "enable"))
-                        await req.Write("no");
-                    else switch (method)
-                    {
-                        case "enable":
-                            if (req.User.TwoFactor.TOTP.Verified)
-                                await req.Write("2FA already enabled.");
-                            else
-                            {
-                                await req.UserTable.VerifyTOTPAsync(req.User.Id);
-                                await Presets.WarningMailAsync(req, req.User, "2FA enabled", "Two-factor authentication has just been enabled.");
-                                await req.Write("ok");
-                            }
-                            break;
-                        case "disable":
-                            await req.UserTable.DisableTOTPAsync(req.User.Id);
-                            await Presets.WarningMailAsync(req, req.User, "2FA disabled", "Two-factor authentication has just been disabled.");
-                            await req.Write("ok");
-                            break;
-                        default:
-                            req.Status = 400;
-                            break;
-                    }
-                else req.Status = 400;
-            } break;
+                var method = req.Query.GetOrThrow("method");
+                var code = req.Query.GetOrThrow("code");
+                var password = req.Query.GetOrThrow("password");
+                if (req.User.TwoFactor.TOTP == null)
+                    return new TextResponse("2FA not enabled.");
+                if (!await req.UserTable.ValidatePasswordAsync(req.User.Id, password, req)
+                    || !await req.UserTable.ValidateTOTPAsync(req.User.Id, code, req, method != "enable"))
+                    return new TextResponse("no");
+                switch (method)
+                {
+                    case "enable":
+                        if (req.User.TwoFactor.TOTP.Verified)
+                            return new TextResponse("2FA already enabled.");
+                        
+                        await req.UserTable.VerifyTOTPAsync(req.User.Id);
+                        await Presets.WarningMailAsync(req, req.User, "2FA enabled", "Two-factor authentication has just been enabled.");
+                        return new TextResponse("ok");
+                    case "disable":
+                        await req.UserTable.DisableTOTPAsync(req.User.Id);
+                        await Presets.WarningMailAsync(req, req.User, "2FA disabled", "Two-factor authentication has just been disabled.");
+                        return new TextResponse("ok");
+                    default:
+                        return StatusResponse.BadRequest;
+                }
+            }
 
 
 
@@ -120,7 +119,7 @@ public partial class UsersPlugin
             // MANAGE APPS
             case "/settings/apps":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Applications", out var page, out var e);
+                Presets.CreatePage(req, "Applications", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(new Script("apps.js"));
                 e.Add(new HeadingElement("Applications", "These are the applications that have partial access to your account."));
@@ -142,7 +141,8 @@ public partial class UsersPlugin
                 }
                 if (!foundAny)
                     e.Add(new ContainerElement("No applications!", "", classes: "red"));
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
             case "/settings/apps/remove":
             { req.ForcePOST(); req.ForceLogin(false);
@@ -150,13 +150,18 @@ public partial class UsersPlugin
                 {
                     var kv = req.User.Auth.ElementAtOrDefault(index);
                     if (kv.Equals(default(KeyValuePair<string, AuthTokenData>)))
-                        req.Status = 404;
+                        return StatusResponse.NotFound;
                     else if (kv.Value.FriendlyName == name && kv.Value.Expires.Ticks == ticks)
+                    {
                         await req.UserTable.DeleteTokenAsync(req.User.Id, kv.Key);
-                    else req.Status = 404;
+                        return StatusResponse.Success;
+                    }
+                    else
+                        return StatusResponse.NotFound;
                 }
-                else req.Status = 400;
-            } break;
+                else
+                    return StatusResponse.BadRequest;
+            }
 
 
 
@@ -164,7 +169,7 @@ public partial class UsersPlugin
             // DELETE ACCOUNT
             case "/settings/delete":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Delete account", out var page, out var e);
+                Presets.CreatePage(req, "Delete account", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("delete.js"));
@@ -173,21 +178,21 @@ public partial class UsersPlugin
                     new Paragraph("We're very sad to see you go! If you're leaving because you've been experiencing issues, please let us know and we'll try our best to fix it. The goal of this project is to make your experience as nice as possible."),
                     new Paragraph($"If you really want to delete your account, enter your password{(req.User.TwoFactor.TOTPEnabled()?" and 2FA code":"")} below.")
                 ]));
-                req.AddAuthElements();
+                Presets.AddAuthElements(page, req);
                 e.Add(new ButtonElementJS("Delete account :(", null, "Continue()", id: "continueButton"));
                 page.AddError();
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
             case "/settings/delete/try":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!await req.Auth(req.User))
-                    break;
+                await req.Auth(req.User);
                 req.Cookies.Delete("AuthToken");
                 await req.UserTable.DeleteAllTokensAsync(req.User.Id);
                 await req.UserTable.SetSettingAsync(req.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
                 await Presets.WarningMailAsync(req, req.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
-                await req.Write("ok");
-            } break;
+                return new TextResponse("ok");
+            }
 
 
 
@@ -195,7 +200,7 @@ public partial class UsersPlugin
             // EMAIL SETTINGS
             case "/settings/email":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Email settings", out var page, out var e);
+                Presets.CreatePage(req, "Email settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 if (req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
                 {
@@ -216,41 +221,42 @@ public partial class UsersPlugin
                     page.Scripts.Add(new Script("email.js"));
                     e.Add(new HeadingElement("Email settings", $"Current: {req.User.MailAddress}"));
                     e.Add(new ContainerElement("New email:", new TextBox("Enter the email address...", req.User.MailAddress, "email", TextBoxRole.Email, "Continue()")));
-                    req.AddAuthElements();
+                    Presets.AddAuthElements(page, req);
                     e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
                     page.AddError();
                 }
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
             case "/settings/email/cancel":
             { req.ForcePOST(); req.ForceLogin(false);
                 await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
-            } break;
+                return StatusResponse.Success;
+            }
 
             case "/settings/email/resend":
             { req.ForcePOST(); req.ForceLogin(false);
                 if (!req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-                    throw new NotFoundSignal();
+                    return StatusResponse.NotFound;
                 string[] setting = settingRaw.Split('&');
                 string mail = HttpUtility.UrlDecode(setting[0]);
                 string existingCode = setting[1];
                 await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
-            } break;
+                return StatusResponse.Success;
+            }
 
             case "/settings/email/verify":
             { req.ForcePOST(); req.ForceLogin(false);
                 if (!req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-                    throw new NotFoundSignal();
+                    return StatusResponse.NotFound;
                 string[] setting = settingRaw.Split('&');
                 string mail = HttpUtility.UrlDecode(setting[0]);
                 string existingCode = setting[1];
-                if (!req.Query.TryGetValue("code", out var code))
-                    throw new BadRequestSignal();
+                var code = req.Query.GetOrThrow("code");
                 if (code != existingCode)
                 {
-                    AccountManager.ReportFailedAuth(req.Context);
-                    await req.Write("no");
-                    break;
+                    AccountManager.ReportFailedAuth(req);
+                    return new TextResponse("no");
                 }
                 try
                 {
@@ -258,11 +264,11 @@ public partial class UsersPlugin
                     await req.UserTable.SetMailAddressAsync(req.User.Id, mail);
                     await Presets.WarningMailAsync(req, req.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
                     await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 }
                 catch (Exception ex)
                 {
-                    await req.Write(ex.Message switch
+                    return new TextResponse(ex.Message switch
                     {
                         "Another user with the provided mail address already exists." => "exists",
                         "The provided mail address is the same as the old one." => "same",
@@ -270,28 +276,26 @@ public partial class UsersPlugin
                         _ => "error"
                     });
                 }
-            } break;
+            }
             
             case "/settings/email/set":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!await req.Auth(req.User))
-                    break;
-                if (!req.Query.TryGetValue("email", out var email))
-                    req.Status = 400;
-                else if (req.User.MailAddress == email)
-                    await req.Write("same");
+                await req.Auth(req.User);
+                var email = req.Query.GetOrThrow("email");
+                if (req.User.MailAddress == email)
+                    return new TextResponse("same");
                 else if (!AccountManager.CheckMailAddressFormat(email))
-                    await req.Write("bad");
+                    return new TextResponse("bad");
                 else if (await req.UserTable.FindByMailAddressAsync(email) != null)
-                    await req.Write("exists");
+                    return new TextResponse("exists");
                 else
                 {
                     string code = Parsers.RandomString(10);
                     await req.UserTable.SetSettingAsync(req.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
                     await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 }
-            } break;
+            }
 
 
 
@@ -299,7 +303,7 @@ public partial class UsersPlugin
             // PASSWORD SETTINGS
             case "/settings/password":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Password settings", out var page, out var e);
+                Presets.CreatePage(req, "Password settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("password.js"));
@@ -314,38 +318,38 @@ public partial class UsersPlugin
                     new Heading("Confirm password:"),
                     new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, "Continue()")
                 ]));
-                req.AddAuthElements();
+                Presets.AddAuthElements(page, req);
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                 page.AddError();
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
             
             case "/settings/password/set":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!req.Query.TryGetValue("new-password", out var password))
-                    throw new BadRequestSignal();
-                if (!await req.Auth(req.User))
-                    break;
+                var password = req.Query.GetOrThrow("new-password");
+                await req.Auth(req.User);
                 try
                 {
                     await req.UserTable.SetPasswordAsync(req.User.Id, password);
                     await Presets.WarningMailAsync(req, req.User, "Password changed", "Your password was just changed.");
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 }
                 catch (Exception ex)
                 {
-                    await req.Write(ex.Message switch
+                    return new TextResponse(ex.Message switch
                     {
                         "Invalid password format." => "bad",
                         "The provided password is the same as the old one." => "same",
                         _ => "error"
                     });
                 }
-            } break;
+            }
 
             case "/settings/password/cancel-reset":
             { req.ForcePOST(); req.ForceLogin(false);
                 await req.UserTable.DeleteSettingAsync(req.User.Id, "PasswordReset");
-            } break;
+                return StatusResponse.Success;
+            }
 
 
 
@@ -353,7 +357,7 @@ public partial class UsersPlugin
             // THEME SETTINGS
             case "/settings/theme":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Theme settings", out var page, out var e);
+                Presets.CreatePage(req, "Theme settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("theme.js"));
@@ -364,15 +368,16 @@ public partial class UsersPlugin
                 e.Add(new ContainerElement("Accent", new Selector("accent", accent, [..Accents]) { OnChange = "Save()" }));
                 e.Add(new ContainerElement("Design", new Selector("design", design, [..Designs]) { OnChange = "Save()" }));
                 e.Add(new ContainerElement("Font", new Selector("font", font, [..Fonts]) { OnChange = "Save()" }));
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
             
             case "/settings/theme/set":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!ThemeFromQuery(req.Context.Request.QueryString.Value ?? "", out string font, out _, out string background, out string accent, out string design))
-                    req.Status = 400;
+                if (!ThemeFromQuery(req.QueryString, out string font, out _, out string background, out string accent, out string design))
+                    return StatusResponse.BadRequest;
                 await req.UserTable.SetSettingAsync(req.User.Id, "Theme", $"?f={font}&b={background}&a={accent}&d={design}");
+                return StatusResponse.Success;
             }
-            break;
 
 
 
@@ -380,32 +385,31 @@ public partial class UsersPlugin
             // USERNAME SETTINGS
             case "/settings/username":
             { req.ForceGET(); req.ForceLogin();
-                req.CreatePage("Username settings", out var page, out var e);
+                Presets.CreatePage(req, "Username settings", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("username.js"));
                 e.Add(new HeadingElement("Username settings", ["Warning: Other devices will remain logged in.", "Current: " + req.User.Username]));
                 e.Add(new ContainerElement("New username:", new TextBox("Enter a username...", req.User.Username, "username", TextBoxRole.Username, "Continue()")));
-                req.AddAuthElements();
+                Presets.AddAuthElements(page, req);
                 e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                 page.AddError();
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
                 
             case "/settings/username/set":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!req.Query.TryGetValue("username", out var username))
-                    throw new BadRequestSignal();
-                if (!await req.Auth(req.User))
-                    break;
+                var username = req.Query.GetOrThrow("username");
+                await req.Auth(req.User);
                 try
                 {
                     await req.UserTable.SetUsernameAsync(req.User.Id, username);
                     await Presets.WarningMailAsync(req, req.User, "Username changed", $"Your username was just changed to {username}.");
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 }
                 catch (Exception ex)
                 {
-                    await req.Write(ex.Message switch
+                    return new TextResponse(ex.Message switch
                     {
                         "Invalid username format." => "bad",
                         "Another user with the provided username already exists." => "exists",
@@ -413,16 +417,14 @@ public partial class UsersPlugin
                         _ => "error"
                     });
                 }
-            } break;
+            }
 
 
 
 
             // 404
             default:
-                req.CreatePage("Error");
-                req.Status = 404;
-                break;
+                return StatusResponse.NotFound;
         }
     }
 }

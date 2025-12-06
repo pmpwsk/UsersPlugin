@@ -1,11 +1,12 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Elements;
+using uwap.WebFramework.Responses;
 
 namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task HandleRecovery(Request req)
+    private static async Task<IResponse> HandleRecovery(Request req)
     {
         switch (req.Path)
         {
@@ -15,20 +16,21 @@ public partial class UsersPlugin
                 switch (req.LoginState)
                 {
                     case LoginState.LoggedIn:
-                        throw new RedirectSignal(req.RedirectUrl);
+                        return new RedirectResponse(req.RedirectUrl);
                     case LoginState.Needs2FA:
-                        throw new RedirectSignal("2fa" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("2fa" + req.CurrentRedirectQuery);
                     case LoginState.NeedsMailVerification:
-                        throw new RedirectSignal("verify" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("verify" + req.CurrentRedirectQuery);
                 }
-                req.CreatePage("Recovery", out var page, out var e);
+                Presets.CreatePage(req, "Recovery", out var page, out var e);
                 page.Navigation.Add(new Button("Back", $"login{req.CurrentRedirectQuery}", "right"));
                 e.Add(new HeadingElement("Recovery", "Here are some options to recover your account. If you still can't log in, please contact our support."));
                 e.Add(new ButtonElement("Username", null, $"recovery/username{req.CurrentRedirectQuery}"));
                 e.Add(new ButtonElement("Password", null, $"recovery/password{req.CurrentRedirectQuery}"));
                 e.Add(new ButtonElement("Two-factor authentication", null, $"recovery/2fa{req.CurrentRedirectQuery}"));
                 page.AddSupportButton(req);
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
 
 
@@ -39,13 +41,13 @@ public partial class UsersPlugin
                 switch (req.LoginState)
                 {
                     case LoginState.LoggedIn:
-                        throw new RedirectSignal(req.RedirectUrl);
+                        return new RedirectResponse(req.RedirectUrl);
                     case LoginState.Needs2FA:
-                        throw new RedirectSignal("../2fa" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../2fa" + req.CurrentRedirectQuery);
                     case LoginState.NeedsMailVerification:
-                        throw new RedirectSignal("../verify" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
                 }
-                req.CreatePage("Username recovery", out var page, out var e);
+                Presets.CreatePage(req, "Username recovery", out var page, out var e);
                 page.Navigation.Add(new Button("Back", $"../recovery{req.CurrentRedirectQuery}", "right"));
                 page.Scripts.Add(Presets.RedirectQueryScript);
                 page.Scripts.Add(Presets.SendRequestScript);
@@ -55,25 +57,23 @@ public partial class UsersPlugin
                 e.Add(new ContainerElement("Email:", new TextBox("Enter your email address...", null, "email", TextBoxRole.Email, command)));
                 e.Add(new ButtonElementJS("Continue", null, command));
                 page.AddError();
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
             
             case "/recovery/username/request":
             { req.ForcePOST();
                 if (req.HasUser)
-                    await req.Write("ok");
-                if (!req.Query.TryGetValue("email", out var email))
-                    throw new BadRequestSignal();
+                    return new TextResponse("ok");
+                var email = req.Query.GetOrThrow("email");
                 User? user = await req.UserTable.FindByMailAddressAsync(email);
                 if (user == null)
                 {
-                    AccountManager.ReportFailedAuth(req.Context);
-                    await req.Write("no");
-                    break;
+                    AccountManager.ReportFailedAuth(req);
+                    return new TextResponse("no");
                 }
                 await Presets.WarningMailAsync(req, user, "Username recovery", $"You requested your username, it is: {user.Username}");
-                await req.Write("ok");
+                return new TextResponse("ok");
             }
-            break;
 
 
 
@@ -84,13 +84,13 @@ public partial class UsersPlugin
                 switch (req.LoginState)
                 {
                     case LoginState.LoggedIn:
-                        throw new RedirectSignal(req.RedirectUrl);
+                        return new RedirectResponse(req.RedirectUrl);
                     case LoginState.Needs2FA:
-                        throw new RedirectSignal("../2fa" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../2fa" + req.CurrentRedirectQuery);
                     case LoginState.NeedsMailVerification:
-                        throw new RedirectSignal("../verify" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
                 }
-                req.CreatePage("Password recovery", out var page, out var e);
+                Presets.CreatePage(req, "Password recovery", out var page, out var e);
                 page.Navigation.Add(new Button("Back", $"../recovery{req.CurrentRedirectQuery}", "right"));
                 page.Scripts.Add(Presets.RedirectQueryScript);
                 page.Scripts.Add(Presets.SendRequestScript);
@@ -113,7 +113,7 @@ public partial class UsersPlugin
                         ]));
                         e.Add(new ButtonElementJS("Continue", null, "Continue()"));
                         page.AddError();
-                        break;
+                        return new LegacyPageResponse(page, req);
                     }
                 }
                 //requesting a password link
@@ -122,63 +122,61 @@ public partial class UsersPlugin
                 e.Add(new ContainerElement("Email:", new TextBox("Enter your email address...", null, "email", TextBoxRole.Email, "Continue()")));
                 e.Add(new ButtonElementJS("Continue", null, "Continue()"));
                 page.AddError();
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
 
             case "/recovery/password/request":
             { req.ForcePOST();
                 if (req.HasUser)
-                    await req.Write("ok");
-                if (!req.Query.TryGetValue("email", out var email))
-                    throw new BadRequestSignal();
+                    return new TextResponse("ok");
+                var email = req.Query.GetOrThrow("email");
                 User? user = await req.UserTable.FindByMailAddressAsync(email);
                 if (user == null)
                 {
-                    AccountManager.ReportFailedAuth(req.Context);
-                    await req.Write("no");
-                    break;
+                    AccountManager.ReportFailedAuth(req);
+                    return new TextResponse("no");
                 }
                 string code = Parsers.RandomString(64);
                 await req.UserTable.SetSettingAsync(user.Id, "PasswordReset", code);
                 string url = $"{req.PluginPathPrefix}/recovery/password?token={user.Id}{code}";
                 await Presets.WarningMailAsync(req, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
-                await req.Write("ok");
-            } break;
+                return new TextResponse("ok");
+            }
 
             case "/recovery/password/set":
             { req.ForcePOST();
                 if (req.HasUser)
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 if (!(req.Query.TryGetValue("password", out var password) && req.Query.TryGetValue("token", out var token) && token.Length == 76))
-                    throw new BadRequestSignal();
+                    return StatusResponse.BadRequest;
                 string id = token.Remove(12);
                 string code = token.Remove(0, 12);
                 var users = req.UserTable;
                 var user = await users.GetByIdNullableAsync(id);
                 if (user == null || !user.Settings.TryGetValue("PasswordReset", out var existingCode))
-                    throw new NotFoundSignal();
+                    return StatusResponse.NotFound;
                 if (existingCode != code)
                 {
-                    AccountManager.ReportFailedAuth(req.Context);
-                    req.Status = 400;
-                    break;
+                    AccountManager.ReportFailedAuth(req);
+                    return StatusResponse.BadRequest;
                 }
                 try
                 {
                     await users.SetPasswordAsync(user.Id, password);
                     await Presets.WarningMailAsync(req, user, "Password recovery", "Your password was just changed by recovery.");
                     await users.DeleteSettingAsync(user.Id, "PasswordReset");
-                    await req.Write("ok");
+                    return new TextResponse("ok");
                 }
                 catch (Exception ex)
                 {
-                    await req.Write(ex.Message switch
+                    return new TextResponse(ex.Message switch
                     {
                         "Invalid password format." => "bad",
                         "The provided password is the same as the old one." => "same",
                         _ => "error"
                     });
                 }
-            } break;
+            }
 
 
 
@@ -189,26 +187,25 @@ public partial class UsersPlugin
                 switch (req.LoginState)
                 {
                     case LoginState.LoggedIn:
-                        throw new RedirectSignal(req.RedirectUrl);
+                        return new RedirectResponse(req.RedirectUrl);
                     case LoginState.Needs2FA:
-                        throw new RedirectSignal("../2fa" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../2fa" + req.CurrentRedirectQuery);
                     case LoginState.NeedsMailVerification:
-                        throw new RedirectSignal("../verify" + req.CurrentRedirectQuery);
+                        return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
                 }
-                req.CreatePage("2FA recovery", out var page, out var e);
+                Presets.CreatePage(req, "2FA recovery", out var page, out var e);
                 page.Navigation.Add(new Button("Back", $"../recovery{req.CurrentRedirectQuery}", "right"));
                 e.Add(new HeadingElement("2FA recovery", "If you lost access to your 2FA app, you can use one of the recovery codes you were given when you enabled 2FA. If you've lost those as well, please contact our support."));
                 page.AddSupportButton(req);
-            } break;
+                return new LegacyPageResponse(page, req);
+            }
             
 
 
 
             // 404
             default:
-                req.CreatePage("Error");
-                req.Status = 404;
-                break;
+                return StatusResponse.NotFound;
         }
     }
 }

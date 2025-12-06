@@ -1,23 +1,26 @@
 using uwap.WebFramework.Elements;
+using uwap.WebFramework.Responses;
 
 namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task HandleUsers(Request req)
+    private static async Task<IResponse> HandleUsers(Request req)
     {
         switch (req.Path)
         {
             // MAIN USER MANAGEMENT PAGE
             case "/users":
             { req.ForceGET();
-                req.CreatePage("Users", out var page, out var e);
+                Presets.CreatePage(req, "Users", out var page, out var e);
                 page.Navigation.Add(new Button("Back", ".", "right"));
                 req.ForceAdmin();
                 e.Add(new HeadingElement("Manage users"));
                 foreach (var user in await req.UserTable.ListAllAsync())
                     e.Add(new ButtonElement(user.Username, user.MailAddress, $"users/user?id={user.Id}"));
-            } break;
+                
+                return new LegacyPageResponse(page, req);
+            }
 
 
 
@@ -25,14 +28,13 @@ public partial class UsersPlugin
             // MANAGE USER
             case "/users/user":
             { req.ForceGET();
-                req.CreatePage("Users", out var page, out var e);
+                Presets.CreatePage(req, "Users", out var page, out var e);
                 page.Navigation.Add(new Button("Back", "../users", "right"));
                 req.ForceAdmin();
-                if (!req.Query.TryGetValue("id", out var id))
-                    throw new BadRequestSignal();
+                var id = req.Query.GetOrThrow("id");
                 var user = await req.UserTable.GetByIdNullableAsync(id);
                 if (user == null)
-                    throw new NotFoundSignal();
+                    return StatusResponse.NotFound;
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(new Script("user.js"));
                 e.Add(new HeadingElement(user.Username, new BulletList(
@@ -57,44 +59,48 @@ public partial class UsersPlugin
                 { Button = new ButtonJS("Set value", $"SetSetting('{id}')", "green") });
                 foreach (var key in user.Settings.ListKeys())
                     e.Add(new ContainerElement(key, user.Settings.Get(key)) { Button = new ButtonJS("Delete", $"DeleteSetting('{id}', '{key}')", "red") });
-            } break;
+                
+                return new LegacyPageResponse(page, req);
+            }
             
             case "/users/user/settings/set":
             { req.ForcePOST(); req.ForceAdmin(false);
-                if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key) && req.Query.TryGetValue("value", out var value))
-                    await req.UserTable.SetSettingAsync(id, key, value);
-                else req.Status = 400;
-            } break;
+                var id = req.Query.GetOrThrow("id");
+                var key = req.Query.GetOrThrow("key");
+                var value = req.Query.GetOrThrow("value");
+                await req.UserTable.SetSettingAsync(id, key, value);
+                return StatusResponse.Success;
+            }
             
             case "/users/user/settings/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
-                if (req.Query.TryGetValue("id", out var id) && req.Query.TryGetValue("key", out var key))
-                    await req.UserTable.DeleteSettingAsync(id, key);
-                else req.Status = 400;
-            } break;
+                var id = req.Query.GetOrThrow("id");
+                var key = req.Query.GetOrThrow("key");
+                await req.UserTable.DeleteSettingAsync(id, key);
+                return StatusResponse.Success;
+            }
 
             case "/users/user/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
-                if (req.Query.TryGetValue("id", out var id))
-                    await req.UserTable.DeleteAsync(id);
-                else req.Status = 400;
-            } break;
+                var id = req.Query.GetOrThrow("id");
+                await req.UserTable.DeleteAsync(id);
+                return StatusResponse.Success;
+            }
 
             case "/users/user/set-access-level":
             { req.ForcePOST(); req.ForceAdmin(false);
-                if (req.Query.TryGetValue("id", out string? id) && req.Query.TryGetValue("value", out ushort value))
-                    await req.UserTable.SetAccessLevelAsync(id, value);
-                else req.Status = 400;
-            } break;
+                var id = req.Query.GetOrThrow("id");
+                var value = req.Query.GetOrThrow<ushort>("value");
+                await req.UserTable.SetAccessLevelAsync(id, value);
+                return StatusResponse.Success;
+            }
 
 
 
 
             // 404
             default:
-                req.CreatePage("Error");
-                req.Status = 404;
-                break;
+                return StatusResponse.NotFound;
         }
     }
 }
