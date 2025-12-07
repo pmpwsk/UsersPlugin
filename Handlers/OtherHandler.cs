@@ -299,7 +299,7 @@ public partial class UsersPlugin
             // USER STYLE
             case "/theme.css":
             { req.ForceGET();
-                ThemeFromQuery(req.QueryString, out string font, out string? fontMono, out string background, out string accent, out string design);
+                ThemeFromQuery(req.Query.FullString, out string font, out string? fontMono, out string background, out string accent, out string design);
                 string domain = req.Domain;
                 string timestamp = Timestamp(font, fontMono, background, accent, design);
                 return new ByteArrayResponse(

@@ -187,7 +187,7 @@ public partial class UsersPlugin
             case "/settings/delete/try":
             { req.ForcePOST(); req.ForceLogin(false);
                 await req.Auth(req.User);
-                req.Cookies.Delete("AuthToken");
+                req.CookieWriter?.Delete("AuthToken");
                 await req.UserTable.DeleteAllTokensAsync(req.User.Id);
                 await req.UserTable.SetSettingAsync(req.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
                 await Presets.WarningMailAsync(req, req.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
@@ -373,7 +373,7 @@ public partial class UsersPlugin
             
             case "/settings/theme/set":
             { req.ForcePOST(); req.ForceLogin(false);
-                if (!ThemeFromQuery(req.QueryString, out string font, out _, out string background, out string accent, out string design))
+                if (!ThemeFromQuery(req.Query.FullString, out string font, out _, out string background, out string accent, out string design))
                     return StatusResponse.BadRequest;
                 await req.UserTable.SetSettingAsync(req.User.Id, "Theme", $"?f={font}&b={background}&a={accent}&d={design}");
                 return StatusResponse.Success;
