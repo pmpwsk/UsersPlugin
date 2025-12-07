@@ -19,7 +19,7 @@ public partial class UsersPlugin
     {
         ThemeFromQuery((req.LoggedIn && req.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? fontMono, out string background, out string accent, out string design);
         fontUrl = $"{pathPrefix}/fonts/{font}.woff2";
-        return new Style($"{pathPrefix}/theme.css?f={font}&b={background}&a={accent}&d={design}&t={Timestamp(font, fontMono, background, accent, design)}");
+        return new Style($"{pathPrefix}/theme.css?f={font}&b={background}&a={accent}&d={design}");
     }
 
     private bool ThemeFromQuery(string query, out string font, out string? fontMono, out string background, out string accent, out string design)
