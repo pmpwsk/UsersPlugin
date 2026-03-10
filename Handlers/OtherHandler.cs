@@ -1,8 +1,9 @@
 using System.Text;
 using System.Web;
 using uwap.WebFramework.Accounts;
-using uwap.WebFramework.Elements;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
+using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
 
@@ -15,14 +16,16 @@ public partial class UsersPlugin
             // OVERVIEW
             case "/":
             { req.ForceGET(); req.ForceLogin();
-                Presets.CreatePage(req, "Account", out var page, out var e);
-                e.Add(new HeadingElement("Account", ""));
+                var page = new Page(req, false);
+                page.Title = "Account";
+                var subsection = new Subsection(null, null);
+                page.Sections.Add(new Section("Account", [ subsection ]));
                 if (req.IsAdmin)
-                    e.Add(new ButtonElement("Manage users", null, "users"));
-                e.Add(new ButtonElement("Log out", null, "logout"));
-                e.Add(new ButtonElement("Log out all other devices", null, "logout-others"));
-                e.Add(new ButtonElement("Settings", null, $"settings"));
-                return new LegacyPageResponse(page, req);
+                    subsection.Content.Add(new BigLinkButton(new("bi bi-people", "Manage users"), [ "Control all existing users." ], "users"));
+                subsection.Content.Add(new BigLinkButton(new("bi bi-box-arrow-left", "Log out"), [ "Other devices will stay logged in." ], "logout"));
+                subsection.Content.Add(new BigLinkButton(new("bi bi-x-circle", "Log out all other devices"), [ "This device will stay logged in." ], "logout-others"));
+                subsection.Content.Add(new BigLinkButton(new("bi bi-gear", "Settings"), [ "Control your account details." ], "settings"));
+                return page;
             }
 
 
@@ -43,16 +46,16 @@ public partial class UsersPlugin
                 Presets.CreatePage(req, "2FA", out var page, out var e);
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(new Script("2fa.js"));
-                e.Add(new HeadingElement("Two-factor authentication"));
-                e.Add(new ContainerElement(null,
+                page.Scripts.Add(new Elements.Script("2fa.js"));
+                e.Add(new Elements.HeadingElement("Two-factor authentication"));
+                e.Add(new Elements.ContainerElement(null,
                 [
-                    new Heading("2FA code / recovery:"),
-                    new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true)
+                    new Elements.Heading("2FA code / recovery:"),
+                    new Elements.TextBox("Enter the current code...", null, "code", Elements.TextBoxRole.NoSpellcheck, "Continue()", autofocus: true)
                 ]));
-                e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
+                e.Add(new Elements.ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
                 page.AddError();
-                e.Add(new ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
+                e.Add(new Elements.ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
                 return new LegacyPageResponse(page, req);
             }
             
@@ -83,18 +86,18 @@ public partial class UsersPlugin
                     var limitedToPaths = limitedToPathsEncoded.Split(',').Select(x => HttpUtility.UrlDecode(x).HtmlSafe()).ToList();
                     if (limitedToPaths.Contains(""))
                         return StatusResponse.BadRequest;
-                    page.Scripts.Add(new Script("auth-request.js"));
+                    page.Scripts.Add(new Elements.Script("auth-request.js"));
                     string? backgroundDomain = req.Query.TryGetValue("background", out var b) && b.SplitAtFirst("://", out var bProto, out b) && (bProto == "http" || bProto == "https") && b.SplitAtFirst('/', out b, out _) ? b : null;
-                    e.Add(new LargeContainerElement("Authentication request",
+                    e.Add(new Elements.LargeContainerElement("Authentication request",
                     [
-                        new Paragraph($"The application \"{name}\" would like to authenticate using {req.Domain}."),
-                        new Paragraph("It will only get access to the following addresses:"),
-                        new BulletList(limitedToPaths)
+                        new Elements.Paragraph($"The application \"{name}\" would like to authenticate using {req.Domain}."),
+                        new Elements.Paragraph("It will only get access to the following addresses:"),
+                        new Elements.BulletList(limitedToPaths)
                     ]));
                     page.AddError();
-                    e.Add(new ButtonElementJS("Allow", $"{(backgroundDomain == null ? "O" : $"Gives a token to \"{backgroundDomain.HtmlSafe()}\" and o")}pens:<br/>{yes.Before('?').HtmlSafe()}", "Allow()", "green") {Unsafe = true});
-                    e.Add(new ButtonElement("Reject", $"Opens:<br/>{no.Before('?').HtmlSafe()}", no.HtmlSafe(), "red") {Unsafe = true});
-                    e.Add(new ContainerElement(null,
+                    e.Add(new Elements.ButtonElementJS("Allow", $"{(backgroundDomain == null ? "O" : $"Gives a token to \"{backgroundDomain.HtmlSafe()}\" and o")}pens:<br/>{yes.Before('?').HtmlSafe()}", "Allow()", "green") {Unsafe = true});
+                    e.Add(new Elements.ButtonElement("Reject", $"Opens:<br/>{no.Before('?').HtmlSafe()}", no.HtmlSafe(), "red") {Unsafe = true});
+                    e.Add(new Elements.ContainerElement(null,
                     [
                         "Addresses ending with * indicate that the application can access any address starting with the part before the *.",
                         "Closing this page will also reject the request, but the application won't be opened in order for it to know that it was rejected.",
@@ -159,51 +162,35 @@ public partial class UsersPlugin
                     case LoginState.NeedsMailVerification:
                         return new RedirectResponse("verify" + req.CurrentRedirectQuery);
                 }
-                Presets.CreatePage(req, "Login", out var page, out var e);
-                page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(Presets.RedirectQueryScript);
-                page.Scripts.Add(new Script("login.js"));
-                e.Add(new HeadingElement("Login"));
-                e.Add(new ContainerElement(null,
-                [
-                    new Heading("Username:"),
-                    new TextBox("Enter your username...", null, "username", TextBoxRole.Username, "Continue()", autofocus: true),
-                    new Heading("Password:"),
-                    new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue()"),
-                ]));
-                e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                page.AddError();
-                e.Add(new ButtonElement(null, "Account recovery", $"recovery" + req.CurrentRedirectQuery));
-                e.Add(new ButtonElement(null, "Register instead", $"register" + req.CurrentRedirectQuery));
-                return new LegacyPageResponse(page, req);
-            }
-
-            case "/login/try":
-            { req.ForcePOST();
-                if (req.HasUser)
-                    return new TextResponse("ok");
-                var username = req.Query.GetOrThrow("username");
-                var password = req.Query.GetOrThrow("password");
-                
-                User? user = await req.UserTable.LoginAsync(username, password, req);
-                if (user != null)
-                {
-                    if (user.Settings.ContainsKey("Delete"))
-                        await req.UserTable.DeleteSettingAsync(user.Id, "Delete");
-                    if (user.TwoFactor.TOTPEnabled())
-                        return new TextResponse("2fa");
-                    else
-                    {
-                        await Presets.WarningMailAsync(req, user, "New login", "Someone just successfully logged into your account.");
-                        if (user.MailToken == null)
-                            return new TextResponse("ok");
-                        else
-                            return new TextResponse("verify");
-                    }
-                }
-                else
-                    return new TextResponse("no");
+                var page = new Page(req, true);
+                page.Title = "Login";
+                var usernameBox = new TextBox("username", "Enter your username...", null, TextBoxRole.Username);
+                var passwordBox = new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword);
+                var submitButton = new SubmitButton("Continue");
+                page.Sections.Add(new(
+                    "Login",
+                    [
+                        new ServerForm(
+                            null,
+                            actionReq => TryLogin(req, actionReq, page, usernameBox.Value, passwordBox.Value),
+                            [
+                                new Heading3("Username"),
+                                usernameBox,
+                                new Heading3("Password"),
+                                passwordBox,
+                                submitButton
+                            ]
+                        ),
+                        new Subsection(
+                            null,
+                            [
+                                new BigLinkButton("Account recovery", ["Can't access your account?"], "recovery" + req.CurrentRedirectQuery),
+                                new BigLinkButton("Register instead", ["Don't have an account yet?"], "register" + req.CurrentRedirectQuery)
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
 
 
@@ -222,11 +209,22 @@ public partial class UsersPlugin
             // LOGOUT OTHERS
             case "/logout-others":
             { req.ForceGET(); req.ForceLogin();
-                Presets.CreatePage(req, "Logout others", out var page, out var e);
+                var page = new Page(req, false);
+                page.Title = "Logout others";
                 await req.UserTable.LogoutOthersAsync(req);
-                e.Add(new HeadingElement("Success", "Successfully logged out all other devices and browsers."));
-                e.Add(new ButtonElement("Back to account", null, "."));
-                return new LegacyPageResponse(page, req);
+                page.Sections.Add(new Section(
+                    "Success",
+                    [
+                        new Subsection(
+                            null,
+                            [
+                                new Paragraph("Successfully logged out all other devices and browsers."),
+                                new LinkButton("Back to account", ".")
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
 
 
@@ -247,22 +245,22 @@ public partial class UsersPlugin
                 Presets.CreatePage(req, "Register", out var page, out var e);
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(Presets.RedirectQueryScript);
-                page.Scripts.Add(new Script("register.js"));
-                e.Add(new HeadingElement("Register"));
-                e.Add(new ContainerElement(null,
+                page.Scripts.Add(new Elements.Script("register.js"));
+                e.Add(new Elements.HeadingElement("Register"));
+                e.Add(new Elements.ContainerElement(null,
                 [
-                    new Heading("Username:"),
-                    new TextBox("Enter a username...", null, "username", TextBoxRole.Username, "Continue()", autofocus: true),
-                    new Heading("Email:"),
-                    new TextBox("Enter your email address...", null, "email", TextBoxRole.Email, "Continue()"),
-                    new Heading("Password:"),
-                    new TextBox("Enter a password...", null, "password1", TextBoxRole.NewPassword, "Continue()"),
-                    new Heading("Confirm password:"),
-                    new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, "Continue()")
+                    new Elements.Heading("Username:"),
+                    new Elements.TextBox("Enter a username...", null, "username", Elements.TextBoxRole.Username, "Continue()", autofocus: true),
+                    new Elements.Heading("Email:"),
+                    new Elements.TextBox("Enter your email address...", null, "email", Elements.TextBoxRole.Email, "Continue()"),
+                    new Elements.Heading("Password:"),
+                    new Elements.TextBox("Enter a password...", null, "password1", Elements.TextBoxRole.NewPassword, "Continue()"),
+                    new Elements.Heading("Confirm password:"),
+                    new Elements.TextBox("Enter the password again...", null, "password2", Elements.TextBoxRole.NewPassword, "Continue()")
                 ]));
-                e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
+                e.Add(new Elements.ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
                 page.AddError();
-                e.Add(new ButtonElement(null, "Log in instead", "login" + req.CurrentRedirectQuery));
+                e.Add(new Elements.ButtonElement(null, "Log in instead", "login" + req.CurrentRedirectQuery));
                 return new  LegacyPageResponse(page, req);
             }
 
@@ -348,7 +346,7 @@ public partial class UsersPlugin
                     return new RedirectResponse(req.RedirectUrl);
                 else if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
                 {
-                    e.Add(new HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
+                    e.Add(new Elements.HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
                     return new LegacyPageResponse(page, req);
                 }
                 SKIP_QUERY:
@@ -363,17 +361,17 @@ public partial class UsersPlugin
                 }
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(new Script("verify.js"));
-                e.Add(new HeadingElement("Mail verification"));
-                e.Add(new ContainerElement(null,
+                page.Scripts.Add(new Elements.Script("verify.js"));
+                e.Add(new Elements.HeadingElement("Mail verification"));
+                e.Add(new Elements.ContainerElement(null,
                 [
-                    new Heading("Verification code:"),
-                    new TextBox("Enter the code...", null, "code", onEnter: "Continue()", autofocus: true)
-                ]) { Buttons = [ new ButtonJS("Send again", "Resend()") ] });
-                e.Add(new ButtonElementJS("Continue", null, "Continue()"));
+                    new Elements.Heading("Verification code:"),
+                    new Elements.TextBox("Enter the code...", null, "code", onEnter: "Continue()", autofocus: true)
+                ]) { Buttons = [ new Elements.ButtonJS("Send again", "Resend()") ] });
+                e.Add(new Elements.ButtonElementJS("Continue", null, "Continue()"));
                 page.AddError();
-                e.Add(new ButtonElement(null, "Change email address", "verify/change"));
-                e.Add(new ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
+                e.Add(new Elements.ButtonElement(null, "Change email address", "verify/change"));
+                e.Add(new Elements.ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
                 return new LegacyPageResponse(page, req);
             }
             
@@ -417,16 +415,16 @@ public partial class UsersPlugin
                 Presets.CreatePage(req, "Verify", out var page, out var e);
                 page.Scripts.Add(Presets.SendRequestScript);
                 page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(new Script("change.js"));
-                e.Add(new HeadingElement("Change email address"));
-                e.Add(new ContainerElement(null,
+                page.Scripts.Add(new Elements.Script("change.js"));
+                e.Add(new Elements.HeadingElement("Change email address"));
+                e.Add(new Elements.ContainerElement(null,
                 [
-                    new Heading("Email:"),
-                    new TextBox("Enter your email address...", req.User.MailAddress, "email", onEnter: "Continue()", autofocus: true)
+                    new Elements.Heading("Email:"),
+                    new Elements.TextBox("Enter your email address...", req.User.MailAddress, "email", onEnter: "Continue()", autofocus: true)
                 ]));
-                e.Add(new ButtonElementJS("Change", null, "Continue()"));
+                e.Add(new Elements.ButtonElementJS("Change", null, "Continue()"));
                 page.AddError();
-                e.Add(new ButtonElement(null, "Back", "../verify" + req.CurrentRedirectQuery));
+                e.Add(new Elements.ButtonElement(null, "Back", "../verify" + req.CurrentRedirectQuery));
                 return new LegacyPageResponse(page, req);
             }
 
@@ -463,5 +461,32 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.NotFound;
         }
+    }
+    
+    private static async Task<IActionResponse> TryLogin(Request pageReq, Request actionReq, Page page, string username, string password)
+    {
+        if (actionReq.HasUser)
+            return new Navigate(pageReq.RedirectUrl);
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            return page.DynamicErrorAction("Please enter your username and password.");
+
+        User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
+        if (user != null)
+        {
+            if (user.Settings.ContainsKey("Delete"))
+                await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
+            if (user.TwoFactor.TOTPEnabled())
+                return new Navigate("2fa" + pageReq.CurrentRedirectQuery);
+            else
+            {
+                await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
+                if (user.MailToken == null)
+                    return new Navigate(pageReq.RedirectUrl);
+                else
+                    return new Navigate("verify" + pageReq.CurrentRedirectQuery);
+            }
+        }
+        else
+            return page.DynamicErrorAction("The combination of username and password you have entered isn't correct.");
     }
 }

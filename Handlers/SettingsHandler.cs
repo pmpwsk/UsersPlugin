@@ -1,8 +1,9 @@
 using System.Text;
 using System.Web;
 using uwap.WebFramework.Accounts;
-using uwap.WebFramework.Elements;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
+using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
 
@@ -15,17 +16,25 @@ public partial class UsersPlugin
             // MAIN SETTINGS PAGE
             case "/settings":
             { req.ForceGET(); req.ForceLogin();
-                Presets.CreatePage(req, "Settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", ".", "right"));
-                e.Add(new HeadingElement("Settings", ""));
-                e.Add(new ButtonElement("Theme", null, "settings/theme"));
-                e.Add(new ButtonElement("Username", null, "settings/username"));
-                e.Add(new ButtonElement("Email address", null, "settings/email"));
-                e.Add(new ButtonElement("Password", null, "settings/password"));
-                e.Add(new ButtonElement("Two-factor authentication", null, "settings/2fa"));
-                e.Add(new ButtonElement("Applications", null, "settings/apps"));
-                e.Add(new ButtonElement("Delete account", null, "settings/delete"));
-                return new LegacyPageResponse(page, req);
+                var page = new Page(req, false);
+                page.Title = "Settings";
+                page.Sections.Add(new(
+                    "Settings",
+                    [
+                        new Subsection(
+                            null,
+                            [
+                                new BigLinkButton(new("bi bi-eye", "Theme"), [ "Adjust the UI theme." ], "settings/theme"),
+                                new BigLinkButton(new("bi bi-person", "Username"), [ "Change your username." ], "settings/username"),
+                                new BigLinkButton(new("bi bi-envelope", "Email address"), [ "Change your email address." ], "settings/email"),
+                                new BigLinkButton(new("bi bi-key", "Password"), [ "Change your password." ], "settings/password"),
+                                new BigLinkButton(new("bi bi-lock", "Two-factor authentication"), [ $"{(req.User.TwoFactor.TOTPEnabled() ? "Disable" : "Enable")} 2FA." ], "settings/2fa"),
+                                new BigLinkButton(new("bi bi-hdd-rack", "Applications"), [ "Manage apps that can access your account." ], "settings/apps"),
+                                new BigLinkButton(new("bi bi-trash", "Delete account"), [ "Close your account." ], "settings/delete")
+                            ]
+                        )
+                ]));
+                return page;
             }
 
 
@@ -35,43 +44,43 @@ public partial class UsersPlugin
             case "/settings/2fa":
             { req.ForceGET(); req.ForceLogin();
                 Presets.CreatePage(req, "2FA settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
+                page.Navigation.Add(new Elements.Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(new Script($"2fa.js"));
+                page.Scripts.Add(new Elements.Script($"2fa.js"));
                 if (req.User.TwoFactor.TOTPEnabled())
                 { //2fa enabled and verified, show option to disable it
-                    e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.", "Warning: Other devices will remain logged in."]));
-                    e.Add(new ContainerElement(null,
+                    e.Add(new Elements.HeadingElement("2FA settings", ["Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you lost access to your 2FA app, you can also enter one of your recovery codes.", "Warning: Other devices will remain logged in."]));
+                    e.Add(new Elements.ContainerElement(null,
                     [
-                        new Heading("Password:"),
-                        new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('disable')"),
-                        new Heading("2FA code / recovery:"),
-                        new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('disable')")
+                        new Elements.Heading("Password:"),
+                        new Elements.TextBox("Enter your password...", null, "password", Elements.TextBoxRole.Password, "Continue('disable')"),
+                        new Elements.Heading("2FA code / recovery:"),
+                        new Elements.TextBox("Enter the current code...", null, "code", Elements.TextBoxRole.NoSpellcheck, "Continue('disable')")
                     ]));
-                    e.Add(new ButtonElementJS("Disable", null, "Continue('disable')", id: "continueButton"));
+                    e.Add(new Elements.ButtonElementJS("Disable", null, "Continue('disable')", id: "continueButton"));
                     page.AddError();
                 }
                 else
                 { //2fa not fully enabled, show option to enable it
                     var totp = await req.UserTable.GenerateTOTPAsync(req.User.Id);
-                    e.Add(new HeadingElement("2FA settings", ["Two-factor authentication is disabled. Follow the steps below to enable it.", "Warning: Other devices will remain logged in."]));
-                    e.Add(new ContainerElement("Private key:",
+                    e.Add(new Elements.HeadingElement("2FA settings", ["Two-factor authentication is disabled. Follow the steps below to enable it.", "Warning: Other devices will remain logged in."]));
+                    e.Add(new Elements.ContainerElement("Private key:",
                     [
-                        new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
-                        new Image(totp.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
-                        new Paragraph("Key: " + totp.SecretKeyString)
+                        new Elements.Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
+                        new Elements.Image(totp.QRImageBase64Src(req.Domain, req.User.Username), "max-height: 15rem"),
+                        new Elements.Paragraph("Key: " + totp.SecretKeyString)
                     ]));
-                    e.Add(new ContainerElement("Recovery codes:", new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", totp.RecoveryCodes)) {Unsafe = true})
-                    { Button = new Button("Download", $"2fa/recovery", newTab: true) });
-                    e.Add(new ContainerElement("Confirm:",
+                    e.Add(new Elements.ContainerElement("Recovery codes:", new Elements.Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe.<br /><br />" + string.Join("<br />", totp.RecoveryCodes)) {Unsafe = true})
+                    { Button = new Elements.Button("Download", $"2fa/recovery", newTab: true) });
+                    e.Add(new Elements.ContainerElement("Confirm:",
                     [
-                        new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
-                        new Heading("Password:"),
-                        new TextBox("Enter your password...", null, "password", TextBoxRole.Password, "Continue('enable')"),
-                        new Heading("2FA code:"),
-                        new TextBox("Enter the current code...", null, "code", TextBoxRole.NoSpellcheck, "Continue('enable')")
+                        new Elements.Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
+                        new Elements.Heading("Password:"),
+                        new Elements.TextBox("Enter your password...", null, "password", Elements.TextBoxRole.Password, "Continue('enable')"),
+                        new Elements.Heading("2FA code:"),
+                        new Elements.TextBox("Enter the current code...", null, "code", Elements.TextBoxRole.NoSpellcheck, "Continue('enable')")
                     ]));
-                    e.Add(new ButtonElementJS("Enable", null, "Continue('enable')", id: "continueButton"));
+                    e.Add(new Elements.ButtonElementJS("Enable", null, "Continue('enable')", id: "continueButton"));
                     page.AddError();
                 }
                 return new LegacyPageResponse(page, req);
@@ -120,9 +129,9 @@ public partial class UsersPlugin
             case "/settings/apps":
             { req.ForceGET(); req.ForceLogin();
                 Presets.CreatePage(req, "Applications", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
-                page.Scripts.Add(new Script("apps.js"));
-                e.Add(new HeadingElement("Applications", "These are the applications that have partial access to your account."));
+                page.Navigation.Add(new Elements.Button("Back", "../settings", "right"));
+                page.Scripts.Add(new Elements.Script("apps.js"));
+                e.Add(new Elements.HeadingElement("Applications", "These are the applications that have partial access to your account."));
                 page.AddError();
                 int index = 0;
                 bool foundAny = false;
@@ -131,16 +140,16 @@ public partial class UsersPlugin
                     if (kv.Value.LimitedToPaths != null)
                     {
                         foundAny = true;
-                        e.Add(new ContainerElement(kv.Value.FriendlyName,
+                        e.Add(new Elements.ContainerElement(kv.Value.FriendlyName,
                         [
-                            new Paragraph($"Expires: {kv.Value.Expires} UTC"),
-                            new BulletList(kv.Value.LimitedToPaths)
-                        ]) { Button = new ButtonJS("Remove", $"Remove('{index}','{HttpUtility.UrlEncode(kv.Value.FriendlyName)}','{kv.Value.Expires.Ticks}')", "red") });
+                            new Elements.Paragraph($"Expires: {kv.Value.Expires} UTC"),
+                            new Elements.BulletList(kv.Value.LimitedToPaths)
+                        ]) { Button = new Elements.ButtonJS("Remove", $"Remove('{index}','{HttpUtility.UrlEncode(kv.Value.FriendlyName)}','{kv.Value.Expires.Ticks}')", "red") });
                     }
                     index++;
                 }
                 if (!foundAny)
-                    e.Add(new ContainerElement("No applications!", "", classes: "red"));
+                    e.Add(new Elements.ContainerElement("No applications!", "", classes: "red"));
                 return new LegacyPageResponse(page, req);
             }
 
@@ -170,16 +179,16 @@ public partial class UsersPlugin
             case "/settings/delete":
             { req.ForceGET(); req.ForceLogin();
                 Presets.CreatePage(req, "Delete account", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
+                page.Navigation.Add(new Elements.Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(new Script("delete.js"));
-                e.Add(new HeadingElement("Delete account",
+                page.Scripts.Add(new Elements.Script("delete.js"));
+                e.Add(new Elements.HeadingElement("Delete account",
                 [
-                    new Paragraph("We're very sad to see you go! If you're leaving because you've been experiencing issues, please let us know and we'll try our best to fix it. The goal of this project is to make your experience as nice as possible."),
-                    new Paragraph($"If you really want to delete your account, enter your password{(req.User.TwoFactor.TOTPEnabled()?" and 2FA code":"")} below.")
+                    new Elements.Paragraph("We're very sad to see you go! If you're leaving because you've been experiencing issues, please let us know and we'll try our best to fix it. The goal of this project is to make your experience as nice as possible."),
+                    new Elements.Paragraph($"If you really want to delete your account, enter your password{(req.User.TwoFactor.TOTPEnabled()?" and 2FA code":"")} below.")
                 ]));
                 Presets.AddAuthElements(page, req);
-                e.Add(new ButtonElementJS("Delete account :(", null, "Continue()", id: "continueButton"));
+                e.Add(new Elements.ButtonElementJS("Delete account :(", null, "Continue()", id: "continueButton"));
                 page.AddError();
                 return new LegacyPageResponse(page, req);
             }
@@ -200,32 +209,63 @@ public partial class UsersPlugin
             // EMAIL SETTINGS
             case "/settings/email":
             { req.ForceGET(); req.ForceLogin();
-                Presets.CreatePage(req, "Email settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
+                var page = new Page(req, true);
+                page.Title = "Email settings";
                 if (req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
                 {
                     string[] setting = settingRaw.Split('&');
                     string mail = HttpUtility.UrlDecode(setting[0]);
-                    page.Scripts.Add(Presets.SendRequestScript);
-                    page.Scripts.Add(new Script("email-verify.js"));
-                    e.Add(new HeadingElement("Email settings", $"You requested to change your email to '{mail}'. Please enter the verification code provided in the email we sent to that address here.")
-                    { Button = new ButtonJS("Cancel", "Cancel()", "red") });
-                    e.Add(new ContainerElement("Verification code", new TextBox("Enter the code...", null, "code", TextBoxRole.NoSpellcheck, "Continue()", autofocus: true))
-                    { Button = new ButtonJS("Send again", "Resend()", id: "resendButton") });
-                    e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
-                    page.AddError();
+                    var codeInput = new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true };
+                    page.Sections.Add(new(
+                        "Email settings",
+                        [
+                            new Subsection(
+                                null,
+                                [
+                                    new Paragraph($"You requested to change your email to '{mail}'. Please enter the verification code provided in the email we sent to that address here."),
+                                    new ServerActionButton("Cancel", async actionReq =>
+                                    {
+                                        req.ForceLogin(false);
+                                        await req.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
+                                        return new Reload();
+                                    }),
+                                    new ServerActionButton("Resend", actionReq => TryResendEmailChange(actionReq, page))
+                                ]
+                            ),
+                            new ServerForm(
+                                null,
+                                actionReq => TryVerifyEmailChange(actionReq, page, codeInput.Value),
+                                [
+                                    new Heading3("Verification code"),
+                                    codeInput,
+                                    new SubmitButton("Change")
+                                ]
+                            )
+                        ]
+                    ));
                 }
                 else
                 {
-                    page.Scripts.Add(Presets.SendRequestScript);
-                    page.Scripts.Add(new Script("email.js"));
-                    e.Add(new HeadingElement("Email settings", $"Current: {req.User.MailAddress}"));
-                    e.Add(new ContainerElement("New email:", new TextBox("Enter the email address...", req.User.MailAddress, "email", TextBoxRole.Email, "Continue()")));
-                    Presets.AddAuthElements(page, req);
-                    e.Add(new ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                    page.AddError();
+                    var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true };
+                    var auth = Presets.CreateAuthElements(req);
+                    page.Sections.Add(new(
+                        "Email settings",
+                        [
+                            new ServerForm(
+                                null,
+                                actionReq => TryRequestEmailChange(actionReq, page, emailInput.Value, auth),
+                                [
+                                    new Paragraph($"Current: {req.User.MailAddress}"),
+                                    new Heading3("New email"),
+                                    emailInput,
+                                    ..auth.Elements,
+                                    new SubmitButton("Continue")
+                                ]
+                            )
+                        ]
+                    ));
                 }
-                return new LegacyPageResponse(page, req);
+                return page;
             }
 
             case "/settings/email/cancel":
@@ -304,22 +344,22 @@ public partial class UsersPlugin
             case "/settings/password":
             { req.ForceGET(); req.ForceLogin();
                 Presets.CreatePage(req, "Password settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
+                page.Navigation.Add(new Elements.Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(new Script("password.js"));
-                e.Add(new HeadingElement("Password settings", "Warning: Other devices will remain logged in."));
+                page.Scripts.Add(new Elements.Script("password.js"));
+                e.Add(new Elements.HeadingElement("Password settings", "Warning: Other devices will remain logged in."));
                 if (req.User.Settings.ContainsKey("PasswordReset"))
-                    e.Add(new ContainerElement("Warning", "A password reset has been requested and a corresponding link has been sent to your email address.", "red")
-                    { Button = new ButtonJS("Cancel", "Cancel()", "red") });
-                e.Add(new ContainerElement(null,
+                    e.Add(new Elements.ContainerElement("Warning", "A password reset has been requested and a corresponding link has been sent to your email address.", "red")
+                    { Button = new Elements.ButtonJS("Cancel", "Cancel()", "red") });
+                e.Add(new Elements.ContainerElement(null,
                 [
-                    new Heading("New password:"),
-                    new TextBox("Enter a password...", null, "password1", TextBoxRole.NewPassword, "Continue()"),
-                    new Heading("Confirm password:"),
-                    new TextBox("Enter the password again...", null, "password2", TextBoxRole.NewPassword, "Continue()")
+                    new Elements.Heading("New password:"),
+                    new Elements.TextBox("Enter a password...", null, "password1", Elements.TextBoxRole.NewPassword, "Continue()"),
+                    new Elements.Heading("Confirm password:"),
+                    new Elements.TextBox("Enter the password again...", null, "password2", Elements.TextBoxRole.NewPassword, "Continue()")
                 ]));
                 Presets.AddAuthElements(page, req);
-                e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
+                e.Add(new Elements.ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
                 page.AddError();
                 return new LegacyPageResponse(page, req);
             }
@@ -358,16 +398,16 @@ public partial class UsersPlugin
             case "/settings/theme":
             { req.ForceGET(); req.ForceLogin();
                 Presets.CreatePage(req, "Theme settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
+                page.Navigation.Add(new Elements.Button("Back", "../settings", "right"));
                 page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(new Script("theme.js"));
-                e.Add(new HeadingElement("Theme settings"));
+                page.Scripts.Add(new Elements.Script("theme.js"));
+                e.Add(new Elements.HeadingElement("Theme settings"));
                 page.AddError();
                 ThemeFromQuery((req.LoggedIn && req.User.Settings.TryGetValue("Theme", out string? theme)) ? theme : "default", out string font, out string? _, out string background, out string accent, out string design);
-                e.Add(new ContainerElement("Background", new Selector("background", background, [..Backgrounds]) { OnChange = "Save()" }));
-                e.Add(new ContainerElement("Accent", new Selector("accent", accent, [..Accents]) { OnChange = "Save()" }));
-                e.Add(new ContainerElement("Design", new Selector("design", design, [..Designs]) { OnChange = "Save()" }));
-                e.Add(new ContainerElement("Font", new Selector("font", font, [..Fonts]) { OnChange = "Save()" }));
+                e.Add(new Elements.ContainerElement("Background", new Elements.Selector("background", background, [..Backgrounds]) { OnChange = "Save()" }));
+                e.Add(new Elements.ContainerElement("Accent", new Elements.Selector("accent", accent, [..Accents]) { OnChange = "Save()" }));
+                e.Add(new Elements.ContainerElement("Design", new Elements.Selector("design", design, [..Designs]) { OnChange = "Save()" }));
+                e.Add(new Elements.ContainerElement("Font", new Elements.Selector("font", font, [..Fonts]) { OnChange = "Save()" }));
                 return new LegacyPageResponse(page, req);
             }
             
@@ -385,38 +425,28 @@ public partial class UsersPlugin
             // USERNAME SETTINGS
             case "/settings/username":
             { req.ForceGET(); req.ForceLogin();
-                Presets.CreatePage(req, "Username settings", out var page, out var e);
-                page.Navigation.Add(new Button("Back", "../settings", "right"));
-                page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(new Script("username.js"));
-                e.Add(new HeadingElement("Username settings", ["Warning: Other devices will remain logged in.", "Current: " + req.User.Username]));
-                e.Add(new ContainerElement("New username:", new TextBox("Enter a username...", req.User.Username, "username", TextBoxRole.Username, "Continue()")));
-                Presets.AddAuthElements(page, req);
-                e.Add(new ButtonElementJS("Change", null, "Continue()", id: "continueButton"));
-                page.AddError();
-                return new LegacyPageResponse(page, req);
-            }
-                
-            case "/settings/username/set":
-            { req.ForcePOST(); req.ForceLogin(false);
-                var username = req.Query.GetOrThrow("username");
-                await req.Auth(req.User);
-                try
-                {
-                    await req.UserTable.SetUsernameAsync(req.User.Id, username);
-                    await Presets.WarningMailAsync(req, req.User, "Username changed", $"Your username was just changed to {username}.");
-                    return new TextResponse("ok");
-                }
-                catch (Exception ex)
-                {
-                    return new TextResponse(ex.Message switch
-                    {
-                        "Invalid username format." => "bad",
-                        "Another user with the provided username already exists." => "exists",
-                        "The provided username is the same as the old one." => "same",
-                        _ => "error"
-                    });
-                }
+                var page = new Page(req, true);
+                page.Title = "Username";
+                var usernameBox = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
+                var auth = Presets.CreateAuthElements(req);
+                page.Sections.Add(new(
+                    "Username settings",
+                    [
+                        new ServerForm(
+                            null,
+                            actionReq => TryChangeUsername(actionReq, page, usernameBox.Value, auth),
+                            [
+                                new Paragraph("Warning: Other devices will remain logged in."),
+                                new Paragraph("Current: " + req.User.Username),
+                                new Heading3("New username"),
+                                usernameBox,
+                                ..auth.Elements,
+                                new SubmitButton("Change")
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
 
 
@@ -426,5 +456,102 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.NotFound;
         }
+    }
+    
+    private static async Task<IActionResponse> TryChangeUsername(Request actionReq, Page page, string username, Presets.AuthElements auth)
+    {
+        actionReq.ForceLogin(false);
+        if (string.IsNullOrEmpty(username) || auth.AnyEmpty)
+            return page.DynamicErrorAction("Please enter a username and authenticate yourself.");
+            
+        if (!await Presets.ValidateAuth(actionReq, auth))
+            return page.DynamicErrorAction("Invalid password or 2FA code.");
+        
+        try
+        {
+            await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, username);
+            await Presets.WarningMailAsync(actionReq, actionReq.User, "Username changed", $"Your username was just changed to {username}.");
+            return new Navigate("../settings");
+        }
+        catch (Exception ex)
+        {
+            return page.DynamicErrorAction(ex.Message switch
+            {
+                "Invalid username format." => "Usernames must be at least 3 characters long and only contain lowercase letters, digits, dashes, dots and underscores. The first and last characters can only be letters or digits.",
+                "Another user with the provided username already exists." => "This username is already being used by another account.",
+                "The provided username is the same as the old one." => "The provided username is the same as the old one.",
+                _ => "error"
+            });
+        }
+    }
+    
+    private static async Task<IActionResponse> TryRequestEmailChange(Request actionReq, Page page, string email, Presets.AuthElements auth)
+    {
+        actionReq.ForceLogin(false);
+        if (string.IsNullOrEmpty(email) || auth.AnyEmpty)
+            return page.DynamicErrorAction("Please enter an email address and authenticate yourself.");
+        
+        if (!await Presets.ValidateAuth(actionReq, auth))
+            return page.DynamicErrorAction("Invalid password or 2FA code.");
+        
+        if (actionReq.User.MailAddress == email)
+            return page.DynamicErrorAction("The provided email address is the same as the old one.");
+        
+        if (!AccountManager.CheckMailAddressFormat(email))
+            return page.DynamicErrorAction("Invalid email address.");
+        if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
+            return page.DynamicErrorAction("This email address is already being used by another account.");
+        
+        string code = Parsers.RandomString(10);
+        await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
+        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
+        return new Navigate("email");
+    }
+    
+    private static async Task<IActionResponse> TryVerifyEmailChange(Request actionReq, Page page, string code)
+    {
+        actionReq.ForceLogin(false);
+        if (string.IsNullOrEmpty(code))
+            return page.DynamicErrorAction("Please enter the verification code.");
+        
+        if (!actionReq.User.Settings.TryGetValue("EmailChange", out var settingRaw))
+            return new Reload();
+        string[] setting = settingRaw.Split('&');
+        string mail = HttpUtility.UrlDecode(setting[0]);
+        string existingCode = setting[1];
+        if (code != existingCode)
+        {
+            AccountManager.ReportFailedAuth(actionReq);
+            return page.DynamicErrorAction("Invalid code.");
+        }
+        try
+        {
+            string oldMail = actionReq.User.MailAddress;
+            await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, mail);
+            await Presets.WarningMailAsync(actionReq, actionReq.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
+            await actionReq.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
+            return new Navigate("../settings");
+        }
+        catch (Exception ex)
+        {
+            return page.DynamicErrorAction(ex.Message switch
+            {
+                "Another user with the provided mail address already exists." => "This email address is already being used by another account.",
+                "The provided mail address is the same as the old one." => "The provided email address is the same as the old one.",
+                "Invalid mail address format." => "Invalid email address.",
+                _ => "error"
+            });
+        }
+    }
+    
+    private static async Task<IActionResponse> TryResendEmailChange(Request actionReq, Page page)
+    {
+        if (!actionReq.User.Settings.TryGetValue("EmailChange", out var settingRaw))
+            return new Reload();
+        string[] setting = settingRaw.Split('&');
+        string mail = HttpUtility.UrlDecode(setting[0]);
+        string existingCode = setting[1];
+        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
+        return page.DynamicInfoAction("The code has been sent.");
     }
 }
