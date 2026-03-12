@@ -18,7 +18,7 @@ public partial class UsersPlugin
             { req.ForceGET(); req.ForceLogin();
                 var page = new Page(req, false);
                 page.Title = "Account";
-                var subsection = new Subsection(null, null);
+                var subsection = new Subsection(null);
                 page.Sections.Add(new Section("Account", [ subsection ]));
                 if (req.IsAdmin)
                     subsection.Content.Add(new BigLinkButton(new("bi bi-people", "Manage users"), [ "Control all existing users." ], "users"));
@@ -164,28 +164,28 @@ public partial class UsersPlugin
                 }
                 var page = new Page(req, true);
                 page.Title = "Login";
-                var usernameBox = new TextBox("username", "Enter your username...", null, TextBoxRole.Username);
-                var passwordBox = new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword);
-                var submitButton = new SubmitButton("Continue");
+                var usernameInput = new TextBox("username", "Enter your username...", null, TextBoxRole.Username);
+                var passwordInput = new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword);
+                var submitButton = new SubmitButton(new("bi bi-arrow-return-right", "Continue"));
                 page.Sections.Add(new(
                     "Login",
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryLogin(req, actionReq, page, usernameBox.Value, passwordBox.Value),
+                            actionReq => TryLogin(req, actionReq, page, usernameInput.Value, passwordInput.Value),
                             [
                                 new Heading3("Username"),
-                                usernameBox,
+                                usernameInput,
                                 new Heading3("Password"),
-                                passwordBox,
+                                passwordInput,
                                 submitButton
                             ]
                         ),
                         new Subsection(
                             null,
                             [
-                                new BigLinkButton("Account recovery", ["Can't access your account?"], "recovery" + req.CurrentRedirectQuery),
-                                new BigLinkButton("Register instead", ["Don't have an account yet?"], "register" + req.CurrentRedirectQuery)
+                                new BigLinkButton(new("bi bi-life-preserver", "Account recovery"), ["Can't access your account?"], "recovery" + req.CurrentRedirectQuery),
+                                new BigLinkButton(new ("bi bi-person-vcard", "Register instead"), ["Don't have an account yet?"], "register" + req.CurrentRedirectQuery)
                             ]
                         )
                     ]

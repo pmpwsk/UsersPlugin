@@ -259,7 +259,7 @@ public partial class UsersPlugin
                                     new Heading3("New email"),
                                     emailInput,
                                     ..auth.Elements,
-                                    new SubmitButton("Continue")
+                                    new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
                                 ]
                             )
                         ]
@@ -427,21 +427,21 @@ public partial class UsersPlugin
             { req.ForceGET(); req.ForceLogin();
                 var page = new Page(req, true);
                 page.Title = "Username";
-                var usernameBox = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
+                var usernameInput = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
                 var auth = Presets.CreateAuthElements(req);
                 page.Sections.Add(new(
                     "Username settings",
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryChangeUsername(actionReq, page, usernameBox.Value, auth),
+                            actionReq => TryChangeUsername(actionReq, page, usernameInput.Value, auth),
                             [
                                 new Paragraph("Warning: Other devices will remain logged in."),
                                 new Paragraph("Current: " + req.User.Username),
                                 new Heading3("New username"),
-                                usernameBox,
+                                usernameInput,
                                 ..auth.Elements,
-                                new SubmitButton("Change")
+                                new SubmitButton(new("bi bi-arrow-return-right", "Change"))
                             ]
                         )
                     ]
@@ -465,7 +465,7 @@ public partial class UsersPlugin
             return page.DynamicErrorAction("Please enter a username and authenticate yourself.");
             
         if (!await Presets.ValidateAuth(actionReq, auth))
-            return page.DynamicErrorAction("Invalid password or 2FA code.");
+            return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
         
         try
         {
@@ -492,13 +492,13 @@ public partial class UsersPlugin
             return page.DynamicErrorAction("Please enter an email address and authenticate yourself.");
         
         if (!await Presets.ValidateAuth(actionReq, auth))
-            return page.DynamicErrorAction("Invalid password or 2FA code.");
+            return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
         
         if (actionReq.User.MailAddress == email)
             return page.DynamicErrorAction("The provided email address is the same as the old one.");
         
         if (!AccountManager.CheckMailAddressFormat(email))
-            return page.DynamicErrorAction("Invalid email address.");
+            return page.DynamicErrorAction("The provided email address is invalid.");
         if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
             return page.DynamicErrorAction("This email address is already being used by another account.");
         
@@ -522,7 +522,7 @@ public partial class UsersPlugin
         if (code != existingCode)
         {
             AccountManager.ReportFailedAuth(actionReq);
-            return page.DynamicErrorAction("Invalid code.");
+            return page.DynamicErrorAction("The provided code is invalid.");
         }
         try
         {
@@ -538,7 +538,7 @@ public partial class UsersPlugin
             {
                 "Another user with the provided mail address already exists." => "This email address is already being used by another account.",
                 "The provided mail address is the same as the old one." => "The provided email address is the same as the old one.",
-                "Invalid mail address format." => "Invalid email address.",
+                "Invalid mail address format." => "The provided email address is invalid.",
                 _ => "error"
             });
         }
