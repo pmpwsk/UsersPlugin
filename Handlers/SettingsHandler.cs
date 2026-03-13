@@ -225,16 +225,54 @@ public partial class UsersPlugin
                                     new Paragraph($"You requested to change your email to '{mail}'. Please enter the verification code provided in the email we sent to that address here."),
                                     new ServerActionButton("Cancel", async actionReq =>
                                     {
-                                        req.ForceLogin(false);
+                                        actionReq.ForceLogin(false);
                                         await req.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
                                         return new Reload();
                                     }),
-                                    new ServerActionButton("Resend", actionReq => TryResendEmailChange(actionReq, page))
+                                    new ServerActionButton("Resend", async actionReq =>
+                                    {
+                                        actionReq.ForceLogin(false);
+                                        if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
+                                            return new Reload();
+                                        setting = settingRaw.Split('&');
+                                        mail = HttpUtility.UrlDecode(setting[0]);
+                                        string existingCode = setting[1];
+                                        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
+                                        return page.DynamicInfoAction("The code has been sent.");
+                                    })
                                 ]
                             ),
                             new ServerForm(
                                 null,
-                                actionReq => TryVerifyEmailChange(actionReq, page, codeInput.Value),
+                                async actionReq =>
+                                {
+                                    actionReq.ForceLogin(false);
+                                    if (codeInput.IsEmpty)
+                                        return page.DynamicErrorAction("Please enter the verification code.");
+        
+                                    if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
+                                        return new Reload();
+                                    setting = settingRaw.Split('&');
+                                    mail = HttpUtility.UrlDecode(setting[0]);
+                                    string existingCode = setting[1];
+                                    if (codeInput.Value != existingCode)
+                                    {
+                                        AccountManager.ReportFailedAuth(actionReq);
+                                        return page.DynamicErrorAction("The provided code is invalid.");
+                                    }
+                                    try
+                                    {
+                                        string oldMail = actionReq.User.MailAddress;
+                                        await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, mail);
+                                        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
+                                        await actionReq.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
+                                        return new Navigate("../settings");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        return page.DynamicErrorAction(ex.Message);
+                                    }
+                                },
                                 [
                                     new Heading3("Verification code"),
                                     codeInput,
@@ -253,7 +291,28 @@ public partial class UsersPlugin
                         [
                             new ServerForm(
                                 null,
-                                actionReq => TryRequestEmailChange(actionReq, page, emailInput.Value, auth),
+                                async actionReq =>
+                                {
+                                    actionReq.ForceLogin(false);
+                                    if (emailInput.IsEmpty || auth.AnyEmpty)
+                                        return page.DynamicErrorAction("Please enter an email address and authenticate yourself.");
+        
+                                    if (!await Presets.ValidateAuth(actionReq, auth))
+                                        return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
+        
+                                    if (actionReq.User.MailAddress == emailInput.Value)
+                                        return page.DynamicErrorAction("The provided email address is the same as the old one.");
+        
+                                    if (!AccountManager.CheckMailAddressFormat(emailInput.Value))
+                                        return page.DynamicErrorAction("The provided email address is invalid.");
+                                    if (await actionReq.UserTable.FindByMailAddressAsync(emailInput.Value) != null)
+                                        return page.DynamicErrorAction("This email address is already being used by another account.");
+        
+                                    string code = Parsers.RandomString(10);
+                                    await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(emailInput.Value)}&{code}");
+                                    await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", emailInput.Value);
+                                    return new Navigate("email");
+                                },
                                 [
                                     new Paragraph($"Current: {req.User.MailAddress}"),
                                     new Heading3("New email"),
@@ -266,75 +325,6 @@ public partial class UsersPlugin
                     ));
                 }
                 return page;
-            }
-
-            case "/settings/email/cancel":
-            { req.ForcePOST(); req.ForceLogin(false);
-                await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
-                return StatusResponse.Success;
-            }
-
-            case "/settings/email/resend":
-            { req.ForcePOST(); req.ForceLogin(false);
-                if (!req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-                    return StatusResponse.NotFound;
-                string[] setting = settingRaw.Split('&');
-                string mail = HttpUtility.UrlDecode(setting[0]);
-                string existingCode = setting[1];
-                await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
-                return StatusResponse.Success;
-            }
-
-            case "/settings/email/verify":
-            { req.ForcePOST(); req.ForceLogin(false);
-                if (!req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-                    return StatusResponse.NotFound;
-                string[] setting = settingRaw.Split('&');
-                string mail = HttpUtility.UrlDecode(setting[0]);
-                string existingCode = setting[1];
-                var code = req.Query.GetOrThrow("code");
-                if (code != existingCode)
-                {
-                    AccountManager.ReportFailedAuth(req);
-                    return new TextResponse("no");
-                }
-                try
-                {
-                    string oldMail = req.User.MailAddress;
-                    await req.UserTable.SetMailAddressAsync(req.User.Id, mail);
-                    await Presets.WarningMailAsync(req, req.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
-                    await req.UserTable.DeleteSettingAsync(req.User.Id, "EmailChange");
-                    return new TextResponse("ok");
-                }
-                catch (Exception ex)
-                {
-                    return new TextResponse(ex.Message switch
-                    {
-                        "Another user with the provided mail address already exists." => "exists",
-                        "The provided mail address is the same as the old one." => "same",
-                        "Invalid mail address format." => "bad",
-                        _ => "error"
-                    });
-                }
-            }
-            
-            case "/settings/email/set":
-            { req.ForcePOST(); req.ForceLogin(false);
-                await req.Auth(req.User);
-                var email = req.Query.GetOrThrow("email");
-                if (req.User.MailAddress == email)
-                    return new TextResponse("same");
-                else if (!AccountManager.CheckMailAddressFormat(email))
-                    return new TextResponse("bad");
-                else if (await req.UserTable.FindByMailAddressAsync(email) != null)
-                    return new TextResponse("exists");
-                else
-                {
-                    string code = Parsers.RandomString(10);
-                    await req.UserTable.SetSettingAsync(req.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
-                    await Presets.WarningMailAsync(req, req.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
-                    return new TextResponse("ok");
-                }
             }
 
 
@@ -378,7 +368,7 @@ public partial class UsersPlugin
                 {
                     return new TextResponse(ex.Message switch
                     {
-                        "Invalid password format." => "bad",
+                        "Passwords must be at least 8 characters long and contain at least one uppercase letter, lowercase letter, digit and special character." => "bad",
                         "The provided password is the same as the old one." => "same",
                         _ => "error"
                     });
@@ -434,7 +424,26 @@ public partial class UsersPlugin
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryChangeUsername(actionReq, page, usernameInput.Value, auth),
+                            async actionReq =>
+                            {
+                                actionReq.ForceLogin(false);
+                                if (usernameInput.IsEmpty || auth.AnyEmpty)
+                                    return page.DynamicErrorAction("Please enter a username and authenticate yourself.");
+            
+                                if (!await Presets.ValidateAuth(actionReq, auth))
+                                    return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
+        
+                                try
+                                {
+                                    await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, usernameInput.Value);
+                                    await Presets.WarningMailAsync(actionReq, actionReq.User, "Username changed", $"Your username was just changed to {usernameInput.Value}.");
+                                    return new Navigate("../settings");
+                                }
+                                catch (Exception ex)
+                                {
+                                    return page.DynamicErrorAction(ex.Message);
+                                }
+                            },
                             [
                                 new Paragraph("Warning: Other devices will remain logged in."),
                                 new Paragraph("Current: " + req.User.Username),
@@ -456,102 +465,5 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.NotFound;
         }
-    }
-    
-    private static async Task<IActionResponse> TryChangeUsername(Request actionReq, Page page, string username, Presets.AuthElements auth)
-    {
-        actionReq.ForceLogin(false);
-        if (string.IsNullOrEmpty(username) || auth.AnyEmpty)
-            return page.DynamicErrorAction("Please enter a username and authenticate yourself.");
-            
-        if (!await Presets.ValidateAuth(actionReq, auth))
-            return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
-        
-        try
-        {
-            await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, username);
-            await Presets.WarningMailAsync(actionReq, actionReq.User, "Username changed", $"Your username was just changed to {username}.");
-            return new Navigate("../settings");
-        }
-        catch (Exception ex)
-        {
-            return page.DynamicErrorAction(ex.Message switch
-            {
-                "Invalid username format." => "Usernames must be at least 3 characters long and only contain lowercase letters, digits, dashes, dots and underscores. The first and last characters can only be letters or digits.",
-                "Another user with the provided username already exists." => "This username is already being used by another account.",
-                "The provided username is the same as the old one." => "The provided username is the same as the old one.",
-                _ => "error"
-            });
-        }
-    }
-    
-    private static async Task<IActionResponse> TryRequestEmailChange(Request actionReq, Page page, string email, Presets.AuthElements auth)
-    {
-        actionReq.ForceLogin(false);
-        if (string.IsNullOrEmpty(email) || auth.AnyEmpty)
-            return page.DynamicErrorAction("Please enter an email address and authenticate yourself.");
-        
-        if (!await Presets.ValidateAuth(actionReq, auth))
-            return page.DynamicErrorAction("The provided password or 2FA code is invalid.");
-        
-        if (actionReq.User.MailAddress == email)
-            return page.DynamicErrorAction("The provided email address is the same as the old one.");
-        
-        if (!AccountManager.CheckMailAddressFormat(email))
-            return page.DynamicErrorAction("The provided email address is invalid.");
-        if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
-            return page.DynamicErrorAction("This email address is already being used by another account.");
-        
-        string code = Parsers.RandomString(10);
-        await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
-        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
-        return new Navigate("email");
-    }
-    
-    private static async Task<IActionResponse> TryVerifyEmailChange(Request actionReq, Page page, string code)
-    {
-        actionReq.ForceLogin(false);
-        if (string.IsNullOrEmpty(code))
-            return page.DynamicErrorAction("Please enter the verification code.");
-        
-        if (!actionReq.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-            return new Reload();
-        string[] setting = settingRaw.Split('&');
-        string mail = HttpUtility.UrlDecode(setting[0]);
-        string existingCode = setting[1];
-        if (code != existingCode)
-        {
-            AccountManager.ReportFailedAuth(actionReq);
-            return page.DynamicErrorAction("The provided code is invalid.");
-        }
-        try
-        {
-            string oldMail = actionReq.User.MailAddress;
-            await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, mail);
-            await Presets.WarningMailAsync(actionReq, actionReq.User, "Email changed", $"Your email was just changed to {mail}.", oldMail);
-            await actionReq.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
-            return new Navigate("../settings");
-        }
-        catch (Exception ex)
-        {
-            return page.DynamicErrorAction(ex.Message switch
-            {
-                "Another user with the provided mail address already exists." => "This email address is already being used by another account.",
-                "The provided mail address is the same as the old one." => "The provided email address is the same as the old one.",
-                "Invalid mail address format." => "The provided email address is invalid.",
-                _ => "error"
-            });
-        }
-    }
-    
-    private static async Task<IActionResponse> TryResendEmailChange(Request actionReq, Page page)
-    {
-        if (!actionReq.User.Settings.TryGetValue("EmailChange", out var settingRaw))
-            return new Reload();
-        string[] setting = settingRaw.Split('&');
-        string mail = HttpUtility.UrlDecode(setting[0]);
-        string existingCode = setting[1];
-        await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
-        return page.DynamicInfoAction("The code has been sent.");
     }
 }

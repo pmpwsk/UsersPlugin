@@ -164,21 +164,45 @@ public partial class UsersPlugin
                 }
                 var page = new Page(req, true);
                 page.Title = "Login";
-                var usernameInput = new TextBox("username", "Enter your username...", null, TextBoxRole.Username);
+                var usernameInput = new TextBox("username", "Enter your username...", null, TextBoxRole.Username) { Autofocus = true };
                 var passwordInput = new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword);
-                var submitButton = new SubmitButton(new("bi bi-arrow-return-right", "Continue"));
                 page.Sections.Add(new(
                     "Login",
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryLogin(req, actionReq, page, usernameInput.Value, passwordInput.Value),
+                            async actionReq =>
+                            {
+                                if (actionReq.HasUser)
+                                    return new Navigate(req.RedirectUrl);
+                                if (usernameInput.IsEmpty || passwordInput.IsEmpty)
+                                    return page.DynamicErrorAction("Please enter your username and password.");
+
+                                User? user = await actionReq.UserTable.LoginAsync(usernameInput.Value, passwordInput.Value, actionReq);
+                                if (user != null)
+                                {
+                                    if (user.Settings.ContainsKey("Delete"))
+                                        await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
+                                    if (user.TwoFactor.TOTPEnabled())
+                                        return new Navigate("2fa" + req.CurrentRedirectQuery);
+                                    else
+                                    {
+                                        await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
+                                        if (user.MailToken == null)
+                                            return new Navigate(req.RedirectUrl);
+                                        else
+                                            return new Navigate("verify" + req.CurrentRedirectQuery);
+                                    }
+                                }
+                                else
+                                    return page.DynamicErrorAction("The combination of username and password you have entered isn't correct.");
+                            },
                             [
                                 new Heading3("Username"),
                                 usernameInput,
                                 new Heading3("Password"),
                                 passwordInput,
-                                submitButton
+                                new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
                             ]
                         ),
                         new Subsection(
@@ -242,53 +266,60 @@ public partial class UsersPlugin
                     case LoginState.NeedsMailVerification:
                         return new RedirectResponse("verify" + req.CurrentRedirectQuery);
                 }
-                Presets.CreatePage(req, "Register", out var page, out var e);
-                page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(Presets.RedirectQueryScript);
-                page.Scripts.Add(new Elements.Script("register.js"));
-                e.Add(new Elements.HeadingElement("Register"));
-                e.Add(new Elements.ContainerElement(null,
-                [
-                    new Elements.Heading("Username:"),
-                    new Elements.TextBox("Enter a username...", null, "username", Elements.TextBoxRole.Username, "Continue()", autofocus: true),
-                    new Elements.Heading("Email:"),
-                    new Elements.TextBox("Enter your email address...", null, "email", Elements.TextBoxRole.Email, "Continue()"),
-                    new Elements.Heading("Password:"),
-                    new Elements.TextBox("Enter a password...", null, "password1", Elements.TextBoxRole.NewPassword, "Continue()"),
-                    new Elements.Heading("Confirm password:"),
-                    new Elements.TextBox("Enter the password again...", null, "password2", Elements.TextBoxRole.NewPassword, "Continue()")
-                ]));
-                e.Add(new Elements.ButtonElementJS("Continue", null, "Continue()", id: "continueButton"));
-                page.AddError();
-                e.Add(new Elements.ButtonElement(null, "Log in instead", "login" + req.CurrentRedirectQuery));
-                return new  LegacyPageResponse(page, req);
-            }
-
-            case "/register/try":
-            { req.ForcePOST();
-                if (req.HasUser)
-                    return new TextResponse("ok");
-                var username = req.Query.GetOrThrow("username");
-                var email = req.Query.GetOrThrow("email");
-                var password = req.Query.GetOrThrow("password");
-                try
-                {
-                    User user = await req.UserTable.RegisterAsync(username, email, password, req);
-                    await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
-                    return new TextResponse("ok");
-                }
-                catch (Exception ex)
-                {
-                    return new TextResponse(ex.Message switch
-                    {
-                        "Invalid username format." => "bad-username",
-                        "Invalid mail address format." => "bad-email",
-                        "Invalid password format." => "bad-password",
-                        "Another user with the provided username already exists." => "username-exists",
-                        "Another user with the provided email address already exists." => "email-exists",
-                        _ => "Error 500: Internal server error."
-                    });
-                }
+                var page = new Page(req, true);
+                page.Title = "Register";
+                var usernameInput = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
+                var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email);
+                var passwordInput1 = new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword);
+                var passwordInput2 = new TextBox("password2", "Enter the password again...", null, TextBoxRole.NewPassword);
+                page.Sections.Add(new(
+                    "Register",
+                    [
+                        new ServerForm(
+                            null,
+                            async actionReq =>
+                            {
+                                if (!actionReq.HasUser)
+                                {
+                                    if (usernameInput.IsEmpty || emailInput.IsEmpty || passwordInput1.IsEmpty || passwordInput2.IsEmpty)
+                                        return page.DynamicErrorAction("Please fill out all fields.");
+                                    if (passwordInput1.Value != passwordInput2.Value)
+                                        return page.DynamicErrorAction("The passwords do not match.");
+                                    
+                                    try
+                                    {
+                                        User user = await req.UserTable.RegisterAsync(usernameInput.Value, emailInput.Value, passwordInput1.Value, actionReq);
+                                        await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        return page.DynamicErrorAction(ex.Message);
+                                    }
+                                }
+                                    
+                                return new Navigate("verify" + req.CurrentRedirectQuery);
+                            },
+                            [
+                                new Heading3("Username"),
+                                usernameInput,
+                                new Heading3("Email"),
+                                emailInput,
+                                new Heading3("Password"),
+                                passwordInput1,
+                                new Heading3("Confirm password"),
+                                passwordInput2,
+                                new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                            ]
+                        ),
+                        new Subsection(
+                            null,
+                            [
+                                new BigLinkButton(new("bi bi-key", "Log in instead"), ["Already have an account?"], "login" + req.CurrentRedirectQuery)
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
 
 
@@ -327,29 +358,8 @@ public partial class UsersPlugin
             // VERIFY EMAIL ADDRESS
             case "/verify":
             { req.ForceGET();
-                Presets.CreatePage(req, "Verify", out var page, out var e);
-                var uid = req.Query.GetOrThrow("user");
-                var code = req.Query.GetOrThrow("code");
-                
-                User user;
-                if (req.HasUser && req.User.Id == uid)
-                    user = req.User;
-                else
-                {
-                    var u = await req.UserTable.GetByIdNullableAsync(uid);
-                    if (u != null)
-                        user = u;
-                    else goto SKIP_QUERY;
-                }
-                
-                if (user.MailToken == null)
-                    return new RedirectResponse(req.RedirectUrl);
-                else if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
-                {
-                    e.Add(new Elements.HeadingElement("Verified!", "You have successfully verified your email address.", "green"));
-                    return new LegacyPageResponse(page, req);
-                }
-                SKIP_QUERY:
+                if (!req.HasUser)
+                    return StatusResponse.NotAuthenticated;
                 switch (req.LoginState)
                 {
                     case LoginState.LoggedIn:
@@ -358,50 +368,108 @@ public partial class UsersPlugin
                         return new RedirectResponse("2fa" + req.CurrentRedirectQuery);
                     case LoginState.None:
                         return new RedirectResponse("login" + req.CurrentRedirectQuery);
+                    case LoginState.NeedsMailVerification:
+                        break;
+                    default:
+                        return StatusResponse.Forbidden;
                 }
-                page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(new Elements.Script("verify.js"));
-                e.Add(new Elements.HeadingElement("Mail verification"));
-                e.Add(new Elements.ContainerElement(null,
-                [
-                    new Elements.Heading("Verification code:"),
-                    new Elements.TextBox("Enter the code...", null, "code", onEnter: "Continue()", autofocus: true)
-                ]) { Buttons = [ new Elements.ButtonJS("Send again", "Resend()") ] });
-                e.Add(new Elements.ButtonElementJS("Continue", null, "Continue()"));
-                page.AddError();
-                e.Add(new Elements.ButtonElement(null, "Change email address", "verify/change"));
-                e.Add(new Elements.ButtonElement(null, "Log out instead", "logout" + req.CurrentRedirectQuery));
-                return new LegacyPageResponse(page, req);
+                var page = new Page(req, true);
+                page.Title = "Verify";
+                var codeInput = new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck);
+                page.Sections.Add(new(
+                    "Verify",
+                    [
+                        new Subsection(
+                            null,
+                            [
+                                new Paragraph("You should have received an email containing a verification code, please enter it below to finish setting up your account."),
+                                new ServerActionButton(new("bi bi-envelope", "Send again"), async actionReq =>
+                                {
+                                    if (actionReq.HasUser && actionReq.User.MailToken != null)
+                                        await Presets.WarningMailAsync(req, actionReq.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                                    
+                                    return page.DynamicInfoAction("The code has been sent.");
+                                })
+                            ]
+                        ),
+                        new ServerForm(
+                            null,
+                            async actionReq =>
+                            {
+                                if (codeInput.IsEmpty)
+                                    return page.DynamicErrorAction("Please enter the verification code.");
+                                
+                                if (!actionReq.HasUser || actionReq.User.MailToken == null
+                                    || await req.UserTable.VerifyMailAsync(actionReq.User.Id, codeInput.Value, actionReq))
+                                    return new Navigate(req.RedirectUrl);
+                                else
+                                    return page.DynamicErrorAction("The provided code is invalid.");
+                            },
+                            [
+                                new Heading3("Verification code"),
+                                codeInput,
+                                new SubmitButton(new("bi bi-arrow-return-right", "Verify"))
+                            ]
+                        ),
+                        new Subsection(
+                            null,
+                            [
+                                new BigLinkButton(new("bi bi-arrow-left-right", "Change email address"), ["Try another email address."], "verify-change"),
+                                new BigLinkButton(new("bi bi-box-arrow-left", "Log out instead"), ["Set up your account later."], $"logout{req.CurrentRedirectQuery}")
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
             
-            case "/verify/try":
-            { req.ForcePOST();
-                if (!req.HasUser)
-                    return StatusResponse.Forbidden;
-                if (req.User.MailToken == null)
-                    return new TextResponse("ok");
+            case "/verify-link":
+            { req.ForceGET();
+                var uid = req.Query.GetOrThrow("user");
                 var code = req.Query.GetOrThrow("code");
-                if (await req.UserTable.VerifyMailAsync(req.User.Id, code, req))
-                    return new TextResponse("ok");
-                return new TextResponse("no");
-            }
-            
-            case "/verify/resend":
-            { req.ForcePOST();
-                if (!req.HasUser)
-                    return StatusResponse.Forbidden;
-                else if (req.User.MailToken == null)
-                    return StatusResponse.Success;
-                await Presets.WarningMailAsync(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
-                return StatusResponse.Success;
+                var user = await req.UserTable.GetByIdAsync(uid);
+                if (user.MailToken == null)
+                    return new RedirectResponse(req.RedirectUrl);
+                var page = new Page(req, false);
+                if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
+                {
+                    page.Title = "Verified";
+                    page.Sections.Add(new(
+                        "Verified",
+                        [
+                            new Subsection(
+                                null,
+                                [
+                                    new Paragraph("You have successfully verified your email address.")
+                                ]
+                            )
+                        ]
+                    ));
+                }
+                else
+                {
+                    page.Title = "Invalid link";
+                    page.Sections.Add(new(
+                        "Invalid link",
+                        [
+                            new Subsection(
+                                null,
+                                [
+                                    new Paragraph("This email verification link is invalid.")
+                                ]
+                            )
+                        ]
+                    ));
+                }
+                
+                return page;
             }
 
 
 
 
             // CHANGE EMAIL DURING VERIFICATION
-            case "/verify/change":
+            case "/verify-change":
             { req.ForceGET();
                 switch (req.LoginState)
                 {
@@ -411,47 +479,49 @@ public partial class UsersPlugin
                         return new RedirectResponse("../2fa" + req.CurrentRedirectQuery);
                     case LoginState.None:
                         return new RedirectResponse("../login" + req.CurrentRedirectQuery);
+                    case LoginState.NeedsMailVerification:
+                        break;
+                    default:
+                        return StatusResponse.Forbidden;
                 }
-                Presets.CreatePage(req, "Verify", out var page, out var e);
-                page.Scripts.Add(Presets.SendRequestScript);
-                page.Scripts.Add(Presets.RedirectScript);
-                page.Scripts.Add(new Elements.Script("change.js"));
-                e.Add(new Elements.HeadingElement("Change email address"));
-                e.Add(new Elements.ContainerElement(null,
-                [
-                    new Elements.Heading("Email:"),
-                    new Elements.TextBox("Enter your email address...", req.User.MailAddress, "email", onEnter: "Continue()", autofocus: true)
-                ]));
-                e.Add(new Elements.ButtonElementJS("Change", null, "Continue()"));
-                page.AddError();
-                e.Add(new Elements.ButtonElement(null, "Back", "../verify" + req.CurrentRedirectQuery));
-                return new LegacyPageResponse(page, req);
-            }
+                var page = new Page(req, true);
+                page.Title = "Change email";
+                var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email);
+                page.Sections.Add(new(
+                    "Change email",
+                    [
+                        new ServerForm(
+                            null,
+                            async actionReq =>
+                            {
+                                if (actionReq.HasUser && actionReq.User.MailToken != null)
+                                {
+                                    if (emailInput.IsEmpty)
+                                        return page.DynamicErrorAction("Please enter your email address.");
 
-            case "/verify/set-email":
-            {  req.ForcePOST();
-                if (!req.HasUser)
-                    return StatusResponse.Forbidden;
-                if (req.User.MailToken == null)
-                    return new TextResponse("ok");
-                var mail = req.Query.GetOrThrow("email");
-                try
-                {
-                    await req.UserTable.SetMailAddressAsync(req.User.Id, mail);
-                    await req.UserTable.SetNewMailTokenAsync(req.User.Id);
-                    await Presets.WarningMailAsync(req, req.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
-                    return new TextResponse("ok");
-                }
-                catch (Exception ex)
-                {
-                    return new TextResponse(ex.Message switch
-                    {
-                        "Another user with the provided mail address already exists." => "exists",
-                        "The provided mail address is the same as the old one." => "same",
-                        "Invalid mail address format." => "bad",
-                        _ => "error"
-                    });
-                }
+                                    try
+                                    {
+                                        await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, emailInput.Value);
+                                        var user = await actionReq.UserTable.SetNewMailTokenAsync(actionReq.User.Id);
+                                        await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        return page.DynamicErrorAction(ex.Message);
+                                    }
+                                }
+                                
+                                return new Navigate("verify");
+                            },
+                            [
+                                new Heading3("Email"),
+                                emailInput,
+                                new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                            ]
+                        )
+                    ]
+                ));
+                return page;
             }
 
 
@@ -461,32 +531,5 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.NotFound;
         }
-    }
-    
-    private static async Task<IActionResponse> TryLogin(Request pageReq, Request actionReq, Page page, string username, string password)
-    {
-        if (actionReq.HasUser)
-            return new Navigate(pageReq.RedirectUrl);
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-            return page.DynamicErrorAction("Please enter your username and password.");
-
-        User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
-        if (user != null)
-        {
-            if (user.Settings.ContainsKey("Delete"))
-                await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
-            if (user.TwoFactor.TOTPEnabled())
-                return new Navigate("2fa" + pageReq.CurrentRedirectQuery);
-            else
-            {
-                await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
-                if (user.MailToken == null)
-                    return new Navigate(pageReq.RedirectUrl);
-                else
-                    return new Navigate("verify" + pageReq.CurrentRedirectQuery);
-            }
-        }
-        else
-            return page.DynamicErrorAction("The combination of username and password you have entered isn't correct.");
     }
 }

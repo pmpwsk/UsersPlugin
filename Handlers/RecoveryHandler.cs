@@ -66,7 +66,24 @@ public partial class UsersPlugin
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryRequestUsernameEmail(actionReq, page, emailInput.Value, req.CurrentRedirectQuery),
+                            async actionReq =>
+                            {
+                                if (!actionReq.HasUser)
+                                {
+                                    if (emailInput.IsEmpty)
+                                        return page.DynamicErrorAction("Please enter your email address.");
+            
+                                    User? user = await actionReq.UserTable.FindByMailAddressAsync(emailInput.Value);
+                                    if (user == null)
+                                    {
+                                        AccountManager.ReportFailedAuth(actionReq);
+                                        return page.DynamicErrorAction("This email address isn't associated with any account.");
+                                    }
+                                    await Presets.WarningMailAsync(actionReq, user, "Username recovery", $"You requested your username, it is: {user.Username}");
+                                }
+        
+                                return new Navigate("../login" + req.CurrentRedirectQuery);
+                            },
                             [
                                 new Paragraph("Enter your email address below and you'll receive an email telling you your username."),
                                 new Heading3("Email"),
@@ -117,7 +134,27 @@ public partial class UsersPlugin
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryRequestPasswordReset(actionReq, page, req.PluginPathPrefix, emailInput.Value, req.CurrentRedirectQuery),
+                            async actionReq =>
+                            {
+                                if (!actionReq.HasUser)
+                                {
+                                    if (emailInput.IsEmpty)
+                                        return page.DynamicErrorAction("Please enter your email address.");
+
+                                    User? user = await actionReq.UserTable.FindByMailAddressAsync(emailInput.Value);
+                                    if (user == null)
+                                    {
+                                        AccountManager.ReportFailedAuth(actionReq);
+                                        return page.DynamicErrorAction("This email address isn't associated with any account.");
+                                    }
+                                    string code = Parsers.RandomString(64);
+                                    await actionReq.UserTable.SetSettingAsync(user.Id, "PasswordReset", code);
+                                    string url = $"{req.PluginPathPrefix}/recovery/password-set?token={user.Id}{code}";
+                                    await Presets.WarningMailAsync(actionReq, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
+                                }
+        
+                                return new Navigate("../login" + req.CurrentRedirectQuery);
+                            },
                             [
                                 new Paragraph("Enter your email address below and you'll receive an email with a link to reset your password."),
                                 new Heading3("Email"),
@@ -153,13 +190,33 @@ public partial class UsersPlugin
                 var page = new Page(req, true);
                 page.Title = "Password reset";
                 var passwordInput1 = new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true };
-                var passwordInput2 = new TextBox("password1", "Enter password again...", null, TextBoxRole.NewPassword);
+                var passwordInput2 = new TextBox("password1", "Enter the password again...", null, TextBoxRole.NewPassword);
                 page.Sections.Add(new(
                     "Username recovery",
                     [
                         new ServerForm(
                             null,
-                            actionReq => TryResetPassword(actionReq, page, user, passwordInput1.Value, passwordInput2.Value, req.CurrentRedirectQuery),
+                            async actionReq =>
+                            {
+                                if (!actionReq.HasUser)
+                                {
+                                    if (passwordInput1.IsEmpty || passwordInput2.IsEmpty || passwordInput1.Value != passwordInput2.Value)
+                                        return page.DynamicErrorAction("Please enter a new password twice.");
+        
+                                    try
+                                    {
+                                        await actionReq.UserTable.SetPasswordAsync(user.Id, passwordInput1.Value);
+                                        await Presets.WarningMailAsync(actionReq, user, "Password changed", "Your password was just changed by recovery.");
+                                        await actionReq.UserTable.DeleteSettingAsync(user.Id, "PasswordReset");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        return page.DynamicErrorAction(ex.Message);
+                                    }
+                                }
+        
+                                return new Navigate("../login" + req.CurrentRedirectQuery);
+                            },
                             [
                                 new Paragraph("Enter a new password and confirm it below."),
                                 new Heading3("New password"),
@@ -213,73 +270,5 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.NotFound;
         }
-    }
-    
-    private static async Task<IActionResponse> TryRequestUsernameEmail(Request actionReq, Page page, string email, string currentRedirectQuery)
-    {
-        if (!actionReq.HasUser)
-        {
-            if (string.IsNullOrEmpty(email))
-                return page.DynamicErrorAction("Please enter your email address.");
-            
-            User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
-            if (user == null)
-            {
-                AccountManager.ReportFailedAuth(actionReq);
-                return page.DynamicErrorAction("This email address isn't associated with any account.");
-            }
-            await Presets.WarningMailAsync(actionReq, user, "Username recovery", $"You requested your username, it is: {user.Username}");
-        }
-        
-        return new Navigate("../login" + currentRedirectQuery);
-    }
-    
-    private static async Task<IActionResponse> TryRequestPasswordReset(Request actionReq, Page page, string pluginPathPrefix, string email, string currentRedirectQuery)
-    {
-        if (!actionReq.HasUser)
-        {
-            if (string.IsNullOrEmpty(email))
-                return page.DynamicErrorAction("Please enter your email address.");
-
-            User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
-            if (user == null)
-            {
-                AccountManager.ReportFailedAuth(actionReq);
-                return page.DynamicErrorAction("This email address isn't associated with any account.");
-            }
-            string code = Parsers.RandomString(64);
-            await actionReq.UserTable.SetSettingAsync(user.Id, "PasswordReset", code);
-            string url = $"{pluginPathPrefix}/recovery/password-set?token={user.Id}{code}";
-            await Presets.WarningMailAsync(actionReq, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset from Account > Settings > Password.");
-        }
-        
-        return new Navigate("../login" + currentRedirectQuery);
-    }
-    
-    private static async Task<IActionResponse> TryResetPassword(Request actionReq, Page page, User user, string password1, string password2, string currentRedirectQuery)
-    {
-        if (!actionReq.HasUser)
-        {
-            if (string.IsNullOrEmpty(password1) || string.IsNullOrEmpty(password2) || password1 != password2)
-                return page.DynamicErrorAction("Please enter a new password twice.");
-        
-            try
-            {
-                await actionReq.UserTable.SetPasswordAsync(user.Id, password1);
-                await Presets.WarningMailAsync(actionReq, user, "Password changed", "Your password was just changed by recovery.");
-                await actionReq.UserTable.DeleteSettingAsync(user.Id, "PasswordReset");
-            }
-            catch (Exception ex)
-            {
-                return page.DynamicErrorAction(ex.Message switch
-                {
-                    "Invalid password format." => "Passwords must be at least 8 characters long and contain at least one uppercase letter, lowercase letter, digit and special character.",
-                    "The provided password is the same as the old one." => "The provided password is the same as the old one.",
-                    _ => "An error occurred."
-                });
-            }
-        }
-        
-        return new Navigate("../login" + currentRedirectQuery);
     }
 }
