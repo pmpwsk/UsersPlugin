@@ -1,0 +1,28 @@
+using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.DefaultUI;
+
+namespace uwap.WebFramework.Plugins;
+
+public partial class UsersPlugin
+{
+    private static async Task<IResponse> HandleLogoutOthers(Request req)
+    {
+        req.ForceGET(); req.ForceLogin();
+        var page = new Page(req, false);
+        page.Title = "Logout others";
+        await req.UserTable.LogoutOthersAsync(req);
+        page.Sections.Add(new Section(
+            "Success",
+            [
+                new Subsection(
+                    null,
+                    [
+                        new Paragraph("Successfully logged out all other devices and browsers."),
+                        new LinkButton("Back to account", ".")
+                    ]
+                )
+            ]
+        ));
+        return page;
+    }
+}

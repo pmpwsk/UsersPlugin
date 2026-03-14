@@ -5,7 +5,7 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task<IResponse> HandleUsers(Request req)
+    private static async Task<IResponse> OldHandleUsers(Request req)
     {
         switch (req.Path)
         {
