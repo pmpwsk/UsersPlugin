@@ -25,7 +25,7 @@ public partial class UsersPlugin
         }
         var page = new Page(req, true);
         page.Title = "2FA";
-        var codeInput = new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck);
+        var codeInput = new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true };
         page.Sections.Add(new(
             "2FA",
             [
