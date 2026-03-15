@@ -27,6 +27,7 @@ public partial class UsersPlugin : Plugin
             "/settings" => HandleSettings(req),
             "/settings/2fa" => await HandleTwoFactorSettings(req),
             "/settings/2fa-codes" => HandleTwoFactorSettingsCodes(req),
+            "/settings/apps" => HandleAppsSettings(req),
             "/settings/delete" => HandleDeleteSettings(req),
             "/settings/email" => HandleEmailSettings(req),
             "/settings/password" => HandlePasswordSettings(req),
