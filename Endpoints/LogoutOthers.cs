@@ -8,21 +8,24 @@ public partial class UsersPlugin
     private static async Task<IResponse> HandleLogoutOthers(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, false);
-        page.Title = "Logout others";
         await req.UserTable.LogoutOthersAsync(req);
-        page.Sections.Add(new Section(
-            "Success",
+        return new Page(
+            req, false,
+            "Logout others",
             [
-                new Subsection(
-                    null,
+                new Section(
+                    "Success",
                     [
-                        new Paragraph("Successfully logged out all other devices and browsers."),
-                        new LinkButton("Back to account", ".")
+                        new Subsection(
+                            null,
+                            [
+                                new Paragraph("Successfully logged out all other devices and browsers."),
+                                new LinkButton("Back to account", ".")
+                            ]
+                        )
                     ]
                 )
             ]
-        ));
-        return page;
+        );
     }
 }

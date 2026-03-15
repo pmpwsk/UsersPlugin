@@ -10,9 +10,7 @@ public partial class UsersPlugin
     private static async Task<Page> HandleTwoFactorSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true);
-        page.Title = "2FA settings";
-        var auth = Presets.CreateAuthElements(req);
+        var page = new Page(req, true, "2FA settings");
         if (req.User.TwoFactor.TOTPEnabled())
         { //2fa enabled and verified, show option to disable it
             page.Sections.Add(new(
@@ -20,6 +18,13 @@ public partial class UsersPlugin
                 [
                     new ServerForm(
                         null,
+                        [
+                            new Paragraph("Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you've lost access to your 2FA app, you can also enter one of your recovery codes."),
+                            new Paragraph("Warning: Other devices will remain logged in."),
+                            ..Presets.CreateAuthElements(req)
+                                .Save(out var auth).Elements,
+                            new SubmitButton(new("bi bi-arrow-return-right", "Disable"))
+                        ],
                         async actionReq =>
                         {
                             req.ForceLogin(false);
@@ -35,13 +40,7 @@ public partial class UsersPlugin
                             await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA disabled", "Two-factor authentication has just been disabled.");
                             return new Navigate("../settings");
-                        },
-                        [
-                            new Paragraph("Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you've lost access to your 2FA app, you can also enter one of your recovery codes."),
-                            new Paragraph("Warning: Other devices will remain logged in."),
-                            ..auth.Elements,
-                            new SubmitButton(new("bi bi-arrow-return-right", "Disable"))
-                        ]
+                        }
                     )
                 ]
             ));
@@ -49,7 +48,6 @@ public partial class UsersPlugin
         else
         { //2fa not fully enabled, show option to enable it
             var totp = await req.UserTable.GenerateTOTPAsync(req.User.Id);
-            var codeInput = new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck);
             page.Sections.Add(new(
                 "2FA settings",
                 [
@@ -78,6 +76,15 @@ public partial class UsersPlugin
                     ),
                     new ServerForm(
                         "Confirmation",
+                        [
+                            new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
+                            ..Presets.CreateAuthElements(req)
+                                .Save(out var auth).Elements,
+                            new Heading3("2FA code"),
+                            new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck)
+                                .Save(out var codeInput),
+                            new SubmitButton(new("bi bi-arrow-return-right", "Enable"))
+                        ],
                         async actionReq =>
                         {
                             actionReq.ForceLogin(false);
@@ -96,14 +103,7 @@ public partial class UsersPlugin
                             await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA enabled", "Two-factor authentication has just been enabled.");
                             return new Navigate("../settings");
-                        },
-                        [
-                            new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
-                            ..auth.Elements,
-                            new Heading3("2FA code"),
-                            codeInput,
-                            new SubmitButton(new("bi bi-arrow-return-right", "Enable"))
-                        ]
+                        }
                     )
                 ]
             ));

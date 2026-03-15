@@ -8,15 +8,22 @@ public partial class UsersPlugin
     private static Page HandleUsernameSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true);
-        page.Title = "Username settings";
-        var usernameInput = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
-        var auth = Presets.CreateAuthElements(req);
+        var page = new Page(req, true, "Username settings");
         page.Sections.Add(new(
             "Username settings",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Paragraph("Warning: Other devices will remain logged in."),
+                        new Paragraph("Current: " + req.User.Username),
+                        new Heading3("New username"),
+                        new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true }
+                            .Save(out var usernameInput),
+                        ..Presets.CreateAuthElements(req)
+                            .Save(out var auth).Elements,
+                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                    ],
                     async actionReq =>
                     {
                         actionReq.ForceLogin(false);
@@ -36,15 +43,7 @@ public partial class UsersPlugin
                         {
                             return page.DynamicErrorAction(ex.Message);
                         }
-                    },
-                    [
-                        new Paragraph("Warning: Other devices will remain logged in."),
-                        new Paragraph("Current: " + req.User.Username),
-                        new Heading3("New username"),
-                        usernameInput,
-                        ..auth.Elements,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
-                    ]
+                    }
                 )
             ]
         ));

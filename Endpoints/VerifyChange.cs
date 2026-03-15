@@ -23,14 +23,18 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.Forbidden;
         }
-        var page = new Page(req, true);
-        page.Title = "Change email";
-        var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email);
+        var page = new Page(req, true, "Change email");
         page.Sections.Add(new(
             "Change email",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Heading3("Email"),
+                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email)
+                            .Save(out var emailInput),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                    ],
                     async actionReq =>
                     {
                         if (actionReq.HasUser && actionReq.User.MailToken != null)
@@ -51,12 +55,7 @@ public partial class UsersPlugin
                         }
                         
                         return new Navigate("verify");
-                    },
-                    [
-                        new Heading3("Email"),
-                        emailInput,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
-                    ]
+                    }
                 )
             ]
         ));

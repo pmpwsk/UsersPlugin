@@ -25,9 +25,7 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.Forbidden;
         }
-        var page = new Page(req, true);
-        page.Title = "Verify";
-        var codeInput = new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck);
+        var page = new Page(req, true, "Verify");
         page.Sections.Add(new(
             "Verify",
             [
@@ -46,6 +44,12 @@ public partial class UsersPlugin
                 ),
                 new ServerForm(
                     null,
+                    [
+                        new Heading3("Verification code"),
+                        new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck)
+                            .Save(out var codeInput),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Verify"))
+                    ],
                     async actionReq =>
                     {
                         if (codeInput.IsEmpty(out var code))
@@ -56,12 +60,7 @@ public partial class UsersPlugin
                             return new Navigate(req.RedirectUrl);
                         else
                             return page.DynamicErrorAction("The provided code is invalid.");
-                    },
-                    [
-                        new Heading3("Verification code"),
-                        codeInput,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Verify"))
-                    ]
+                    }
                 ),
                 new Subsection(
                     null,

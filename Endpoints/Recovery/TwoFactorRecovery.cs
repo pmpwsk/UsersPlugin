@@ -18,20 +18,23 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, false);
-        page.Title = "2FA recovery";
-        page.Sections.Add(new(
+        return new Page(
+            req, false,
             "2FA recovery",
             [
-                new Subsection(
-                    null,
+                new Section(
+                    "2FA recovery",
                     [
-                        new Paragraph("If you've lost access to your 2FA app, you can use one of the recovery codes you were given when you enabled 2FA. If you've lost those as well, please contact our support."),
-                        Presets.CreateSupportButton(req)
+                        new Subsection(
+                            null,
+                            [
+                                new Paragraph("If you've lost access to your 2FA app, you can use one of the recovery codes you were given when you enabled 2FA. If you've lost those as well, please contact our support."),
+                                Presets.CreateSupportButton(req)
+                            ]
+                        )
                     ]
                 )
             ]
-        ));
-        return page;
+        );
     }
 }

@@ -19,15 +19,21 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true);
-        page.Title = "Login";
-        var usernameInput = new TextBox("username", "Enter your username...", null, TextBoxRole.Username) { Autofocus = true };
-        var passwordInput = new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword);
+        var page = new Page(req, true, "Login");
         page.Sections.Add(new(
             "Login",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Heading3("Username"),
+                        new TextBox("username", "Enter your username...", null, TextBoxRole.Username) { Autofocus = true }
+                            .Save(out var usernameInput),
+                        new Heading3("Password"),
+                        new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword)
+                            .Save(out var passwordInput),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                    ],
                     async actionReq =>
                     {
                         if (actionReq.HasUser)
@@ -53,14 +59,7 @@ public partial class UsersPlugin
                         }
                         else
                             return page.DynamicErrorAction("The combination of username and password you have entered isn't correct.");
-                    },
-                    [
-                        new Heading3("Username"),
-                        usernameInput,
-                        new Heading3("Password"),
-                        passwordInput,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                    ]
+                    }
                 ),
                 new Subsection(
                     null,

@@ -19,17 +19,27 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true);
-        page.Title = "Register";
-        var usernameInput = new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true };
-        var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email);
-        var passwordInput1 = new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword);
-        var passwordInput2 = new TextBox("password2", "Enter the password again...", null, TextBoxRole.NewPassword);
+        var page = new Page(req, true, "Register");
         page.Sections.Add(new(
             "Register",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Heading3("Username"),
+                        new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true }
+                            .Save(out var usernameInput),
+                        new Heading3("Email"),
+                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email)
+                            .Save(out var emailInput),
+                        new Heading3("Password"),
+                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword)
+                            .Save(out var passwordInput1),
+                        new Heading3("Confirm password"),
+                        new TextBox("password2", "Enter the password again...", null, TextBoxRole.NewPassword)
+                            .Save(out var passwordInput2),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                    ],
                     async actionReq =>
                     {
                         if (!actionReq.HasUser)
@@ -51,18 +61,7 @@ public partial class UsersPlugin
                         }
                             
                         return new Navigate("verify" + req.CurrentRedirectQuery);
-                    },
-                    [
-                        new Heading3("Username"),
-                        usernameInput,
-                        new Heading3("Email"),
-                        emailInput,
-                        new Heading3("Password"),
-                        passwordInput1,
-                        new Heading3("Confirm password"),
-                        passwordInput2,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                    ]
+                    }
                 ),
                 new Subsection(
                     null,

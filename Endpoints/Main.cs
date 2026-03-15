@@ -8,8 +8,7 @@ public partial class UsersPlugin
     private static Page HandleMenu(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true);
-        page.Title = "Account";
+        var page = new Page(req, true, "Account");
         Section? section = null;
         Subsection? passwordResetSubsection = null;
         passwordResetSubsection = new Subsection(

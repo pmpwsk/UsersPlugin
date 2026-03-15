@@ -10,13 +10,11 @@ public partial class UsersPlugin
     private static Page HandleEmailSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true);
-        page.Title = "Email settings";
+        var page = new Page(req, true, "Email settings");
         if (req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
         {
             string[] setting = settingRaw.Split('&');
             string mail = HttpUtility.UrlDecode(setting[0]);
-            var codeInput = new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true };
             page.Sections.Add(new(
                 "Email settings",
                 [
@@ -45,6 +43,12 @@ public partial class UsersPlugin
                     ),
                     new ServerForm(
                         null,
+                        [
+                            new Heading3("Verification code"),
+                            new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true }
+                                .Save(out var codeInput),
+                            new SubmitButton("Change")
+                        ],
                         async actionReq =>
                         {
                             actionReq.ForceLogin(false);
@@ -73,25 +77,27 @@ public partial class UsersPlugin
                             {
                                 return page.DynamicErrorAction(ex.Message);
                             }
-                        },
-                        [
-                            new Heading3("Verification code"),
-                            codeInput,
-                            new SubmitButton("Change")
-                        ]
+                        }
                     )
                 ]
             ));
         }
         else
         {
-            var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true };
-            var auth = Presets.CreateAuthElements(req);
             page.Sections.Add(new(
                 "Email settings",
                 [
                     new ServerForm(
                         null,
+                        [
+                            new Paragraph($"Current: {req.User.MailAddress}"),
+                            new Heading3("New email"),
+                            new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true }
+                                .Save(out var emailInput),
+                            ..Presets.CreateAuthElements(req)
+                                .Save(out var auth).Elements,
+                            new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                        ],
                         async actionReq =>
                         {
                             actionReq.ForceLogin(false);
@@ -113,14 +119,7 @@ public partial class UsersPlugin
                             await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
                             return new Navigate("email");
-                        },
-                        [
-                            new Paragraph($"Current: {req.User.MailAddress}"),
-                            new Heading3("New email"),
-                            emailInput,
-                            ..auth.Elements,
-                            new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                        ]
+                        }
                     )
                 ]
             ));

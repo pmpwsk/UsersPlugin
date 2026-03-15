@@ -19,14 +19,19 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true);
-        page.Title = "Username recovery";
-        var emailInput = new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true };
+        var page = new Page(req, true, "Username recovery");
         page.Sections.Add(new(
             "Username recovery",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Paragraph("Enter your email address below and you'll receive an email telling you your username."),
+                        new Heading3("Email"),
+                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true }
+                            .Save(out var emailInput),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                    ],
                     async actionReq =>
                     {
                         if (!actionReq.HasUser)
@@ -44,13 +49,7 @@ public partial class UsersPlugin
                         }
 
                         return new Navigate("../login" + req.CurrentRedirectQuery);
-                    },
-                    [
-                        new Paragraph("Enter your email address below and you'll receive an email telling you your username."),
-                        new Heading3("Email"),
-                        emailInput,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                    ]
+                    }
                 )
             ]
         ));

@@ -13,38 +13,41 @@ public partial class UsersPlugin
         var user = await req.UserTable.GetByIdAsync(uid);
         if (user.MailToken == null)
             return new RedirectResponse(req.RedirectUrl);
-        var page = new Page(req, false);
         if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
-        {
-            page.Title = "Verified";
-            page.Sections.Add(new(
+            return new Page(
+                req, false,
                 "Verified",
                 [
-                    new Subsection(
-                        null,
+                    new Section(
+                        "Verified",
                         [
-                            new Paragraph("You have successfully verified your email address.")
+                            new Subsection(
+                                null,
+                                [
+                                    new Paragraph("You have successfully verified your email address.")
+                                ]
+                            )
                         ]
                     )
                 ]
-            ));
-        }
+            );
         else
-        {
-            page.Title = "Invalid link";
-            page.Sections.Add(new(
+            return new Page(
+                req, false,
                 "Invalid link",
                 [
-                    new Subsection(
-                        null,
+                    new Section(
+                        "Invalid link",
                         [
-                            new Paragraph("This email verification link is invalid.")
+                            new Subsection(
+                                null,
+                                [
+                                    new Paragraph("This email verification link is invalid.")
+                                ]
+                            )
                         ]
                     )
                 ]
-            ));
-        }
-                
-        return page;
+            );
     }
 }

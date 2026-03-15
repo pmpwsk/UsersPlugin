@@ -28,15 +28,22 @@ public partial class UsersPlugin
         if (user == null || user.Settings.TryGet("PasswordReset") != code)
             return new RedirectResponse("password");
         
-        var page = new Page(req, true);
-        page.Title = "Password reset";
-        var passwordInput1 = new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true };
-        var passwordInput2 = new TextBox("password1", "Enter the password again...", null, TextBoxRole.NewPassword);
+        var page = new Page(req, true, "Password reset");
         page.Sections.Add(new(
             "Password reset",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Paragraph("Enter a new password and confirm it below."),
+                        new Heading3("New password"),
+                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true }
+                            .Save(out var passwordInput1),
+                        new Heading3("Confirm password"),
+                        new TextBox("password1", "Enter the password again...", null, TextBoxRole.NewPassword)
+                            .Save(out var passwordInput2),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                    ],
                     async actionReq =>
                     {
                         if (!actionReq.HasUser)
@@ -57,15 +64,7 @@ public partial class UsersPlugin
                         }
 
                         return new Navigate("../login" + req.CurrentRedirectQuery);
-                    },
-                    [
-                        new Paragraph("Enter a new password and confirm it below."),
-                        new Heading3("New password"),
-                        passwordInput1,
-                        new Heading3("Confirm password"),
-                        passwordInput2,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
-                    ]
+                    }
                 )
             ]
         ));

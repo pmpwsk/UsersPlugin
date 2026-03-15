@@ -23,14 +23,18 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.Forbidden;
         }
-        var page = new Page(req, true);
-        page.Title = "2FA";
-        var codeInput = new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true };
+        var page = new Page(req, true, "2FA");
         page.Sections.Add(new(
             "2FA",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Heading3("2FA code / recovery"),
+                        new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true }
+                            .Save(out var codeInput),
+                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                    ],
                     async actionReq =>
                     {
                         if (actionReq.LoginState == LoginState.Needs2FA && actionReq.User.TwoFactor.TOTPEnabled())
@@ -45,12 +49,7 @@ public partial class UsersPlugin
                         }
                         
                         return new Navigate(req.RedirectUrl);
-                    },
-                    [
-                        new Heading3("2FA code / recovery"),
-                        codeInput,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                    ]
+                    }
                 ),
                 new Subsection(
                     null,

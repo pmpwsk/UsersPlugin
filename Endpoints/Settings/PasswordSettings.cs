@@ -8,16 +8,24 @@ public partial class UsersPlugin
     private static Page HandlePasswordSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true);
-        page.Title = "Password settings";
-        var passwordInput1 = new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true };
-        var passwordInput2 = new TextBox("password2", "Enter a password...", null, TextBoxRole.NewPassword);
-        var auth = Presets.CreateAuthElements(req);
+        var page = new Page(req, true, "Password settings");
         page.Sections.Add(new(
             "Password settings",
             [
                 new ServerForm(
                     null,
+                    [
+                        new Paragraph("Warning: Other devices will remain logged in."),
+                        new Heading3("New password"),
+                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true }
+                            .Save(out var passwordInput1),
+                        new Heading3("Confirm password"),
+                        new TextBox("password2", "Enter a password...", null, TextBoxRole.NewPassword)
+                            .Save(out var passwordInput2),
+                        ..Presets.CreateAuthElements(req)
+                            .Save(out var auth).Elements,
+                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                    ],
                     async actionReq =>
                     {
                         actionReq.ForceLogin(false);
@@ -39,16 +47,7 @@ public partial class UsersPlugin
                         {
                             return page.DynamicErrorAction(ex.Message);
                         }
-                    },
-                    [
-                        new Paragraph("Warning: Other devices will remain logged in."),
-                        new Heading3("New password"),
-                        passwordInput1,
-                        new Heading3("Confirm password"),
-                        passwordInput2,
-                        ..auth.Elements,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
-                    ]
+                    }
                 )
             ]
         ));
