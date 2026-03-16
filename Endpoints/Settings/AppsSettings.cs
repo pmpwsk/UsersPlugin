@@ -10,6 +10,7 @@ public partial class UsersPlugin
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Applications");
+        page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         page.Sections.Add(new(
             "Applications",
             [

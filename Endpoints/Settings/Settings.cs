@@ -10,6 +10,7 @@ public partial class UsersPlugin
         return new Page(
             req, false,
             "Settings",
+            MainSidebar(req),
             [
                 new Section(
                     "Settings",
@@ -17,7 +18,6 @@ public partial class UsersPlugin
                         new Subsection(
                             null,
                             [
-                                new BigLinkButton(new("bi bi-eye", "Theme"), [ "Adjust the UI theme." ], "settings/theme"),
                                 new BigLinkButton(new("bi bi-person", "Username"), [ "Change your username." ], "settings/username"),
                                 new BigLinkButton(new("bi bi-envelope", "Email address"), [ "Change your email address." ], "settings/email"),
                                 new BigLinkButton(new("bi bi-key", "Password"), [ "Change your password." ], "settings/password"),

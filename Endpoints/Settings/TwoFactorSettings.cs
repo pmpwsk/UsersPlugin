@@ -11,6 +11,7 @@ public partial class UsersPlugin
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "2FA settings");
+        page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         if (req.User.TwoFactor.TOTPEnabled())
         { //2fa enabled and verified, show option to disable it
             page.Sections.Add(new(

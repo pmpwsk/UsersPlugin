@@ -20,6 +20,7 @@ public partial class UsersPlugin
                 return new RedirectResponse("verify" + req.CurrentRedirectQuery);
         }
         var page = new Page(req, true, "Login");
+        page.Sidebar.Items.ReplaceAll(LoginSidebar(req));
         page.Sections.Add(new(
             "Login",
             [

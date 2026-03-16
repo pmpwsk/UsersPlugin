@@ -20,6 +20,7 @@ public partial class UsersPlugin
                 return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
         }
         var page = new Page(req, true, "Password recovery");
+        page.Sidebar.Items.ReplaceAll(RecoverySidebar(req));
         page.Sections.Add(new(
             "Password recovery",
             [

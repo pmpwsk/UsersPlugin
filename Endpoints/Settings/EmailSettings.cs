@@ -11,6 +11,7 @@ public partial class UsersPlugin
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Email settings");
+        page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         if (req.User.Settings.TryGetValue("EmailChange", out var settingRaw))
         {
             string[] setting = settingRaw.Split('&');

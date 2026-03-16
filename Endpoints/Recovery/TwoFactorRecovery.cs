@@ -21,6 +21,7 @@ public partial class UsersPlugin
         return new Page(
             req, false,
             "2FA recovery",
+            RecoverySidebar(req),
             [
                 new Section(
                     "2FA recovery",
