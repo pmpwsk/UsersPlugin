@@ -8,6 +8,8 @@ public partial class UsersPlugin
         => [
             new LinkButton(new("bi bi-person", "Account"), "."),
             ..req.IsAdmin ? (IEnumerable<LinkButton>)[ new LinkButton(new("bi bi-people", "Manage users"), "users") ] : [],
+            new LinkButton(new("bi bi-box-arrow-left", "Log out"), "logout"),
+            new LinkButton(new("bi bi-slash-circle", "Log out all other devices"), "logout-others"),
             new LinkButton(new("bi bi-gear", "Settings"), "settings")
         ];
     

@@ -12,7 +12,7 @@ public partial class UsersPlugin : Plugin
             "/get-username" => HandleGetUsername(req),
             "/login" => HandleLogin(req),
             "/logout" => await HandleLogout(req),
-            "/logout-others" => await HandleLogoutOthers(req),
+            "/logout-others" => HandleLogoutOthers(req),
             "/register" => HandleRegister(req),
             "/verify" => HandleVerify(req),
             "/verify-change" => HandleVerifyChange(req),
