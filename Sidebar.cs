@@ -1,10 +1,11 @@
+using uwap.WebFramework.Responses.Base;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    public static List<AbstractButton> MainSidebar(Request req)
+    public static List<AbstractElement> MainSidebar(Request req)
         => [
             new LinkButton(new("bi bi-person", "Account"), "."),
             ..req.IsAdmin ? (IEnumerable<LinkButton>)[ new LinkButton(new("bi bi-people", "Manage users"), "users") ] : [],
@@ -13,7 +14,7 @@ public partial class UsersPlugin
             new LinkButton(new("bi bi-gear", "Settings"), "settings")
         ];
     
-    public static List<AbstractButton> SettingsSidebar
+    public static List<AbstractElement> SettingsSidebar
         => [
             new LinkButton(new("bi bi-gear", "Settings"), "../settings"),
             new LinkButton(new("bi bi-person", "Username"), "username"),
@@ -24,14 +25,14 @@ public partial class UsersPlugin
             new LinkButton(new("bi bi-trash", "Delete account"), "delete")
         ];
     
-    public static List<AbstractButton> LoginSidebar(Request req)
+    public static List<AbstractElement> LoginSidebar(Request req)
         => [
             new LinkButton(new("bi bi-key", "Login"), $"login{req.CurrentRedirectQuery}"),
             new LinkButton(new("bi bi-person-vcard", "Register"), $"register{req.CurrentRedirectQuery}"),
             new LinkButton(new("bi bi-life-preserver", "Account recovery"), $"recovery{req.CurrentRedirectQuery}")
         ];
     
-    public static List<AbstractButton> RecoverySidebar(Request req)
+    public static List<AbstractElement> RecoverySidebar(Request req)
         => [
             new LinkButton(new("bi bi-life-preserver", "Account recovery"), $"../recovery{req.CurrentRedirectQuery}"),
             new LinkButton(new("bi bi-person", "Username"), $"username{req.CurrentRedirectQuery}"),
