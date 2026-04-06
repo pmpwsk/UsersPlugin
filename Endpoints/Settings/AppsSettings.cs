@@ -21,38 +21,32 @@ public partial class UsersPlugin
                             a => [ new BigServerActionButton(
                                 a.Value.FriendlyName ?? "Unknown",
                                 [ $"Expires: {a.Value.Expires} UTC" ],
-                                _ => Task.FromResult<IActionResponse>(page.DynamicDialogAction(
+                                _ => page.DynamicDialogActionAsync(
                                     a.Value.FriendlyName ?? "Unknown",
                                     [
                                         new Paragraph($"Expires: {a.Value.Expires} UTC"),
                                         new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
                                         new Row([
-                                            new ServerActionButton(new("bi bi-trash", "Delete"), _ => Task.FromResult<IActionResponse>(page.DynamicDialogAction(
+                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => page.DynamicDialogActionAsync(
                                                 a.Value.FriendlyName ?? "Unknown",
                                                 [
                                                     new Paragraph("Do you really want to remove this application's partial access to your account?"),
                                                     new Row([
-                                                        new ServerActionButton(new("bi bi-arrow-return-right", "Continue"), async actionReq =>
-                                                        {
-                                                            await actionReq.UserTable.DeleteTokenAsync(actionReq.User.Id, a.Key);
-                                                            return new Reload();
-                                                        }),
-                                                        new ServerActionButton("Cancel", _ =>
-                                                        {
-                                                            page.CloseDynamicDialog();
-                                                            return Task.FromResult<IActionResponse>(new Nothing());
-                                                        })
+                                                        new SubmitButton(new("bi bi-arrow-return-right", "Continue")),
+                                                        new DialogCancelButton(page)
                                                     ])
-                                                ]
-                                            ))),
-                                            new ServerActionButton("Close", _ =>
-                                            {
-                                                page.CloseDynamicDialog();
-                                                return Task.FromResult<IActionResponse>(new Nothing());
-                                            })
+                                                ],
+                                                async actionReq =>
+                                                {
+                                                    await actionReq.UserTable.DeleteTokenAsync(actionReq.User.Id, a.Key);
+                                                    return new Reload();
+                                                }
+                                            )),
+                                            new SubmitButton("Close")
                                         ])
-                                    ]
-                                ))
+                                    ],
+                                    page.DynamicDialogCloseActionHandler
+                                )
                             ) ],
                             () => [ new Paragraph("There are currently no applications that have partial access to your account.") ]
                         )
