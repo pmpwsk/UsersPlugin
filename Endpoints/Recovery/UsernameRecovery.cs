@@ -31,7 +31,7 @@ public partial class UsersPlugin
                         new Heading3("Email"),
                         new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true }
                             .Save(out var emailInput),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {

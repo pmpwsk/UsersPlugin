@@ -32,7 +32,7 @@ public partial class UsersPlugin
                                                 [
                                                     new Paragraph("Do you really want to remove this application's partial access to your account?"),
                                                     new Row([
-                                                        new SubmitButton(new("bi bi-arrow-return-right", "Continue")),
+                                                        new ContinueButton(),
                                                         new DialogCancelButton(page)
                                                     ])
                                                 ],

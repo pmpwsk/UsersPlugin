@@ -33,7 +33,7 @@ public partial class UsersPlugin
                         new Heading3("Password"),
                         new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword)
                             .Save(out var passwordInput),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {

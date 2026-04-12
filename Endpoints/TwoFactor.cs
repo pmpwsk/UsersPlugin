@@ -33,7 +33,7 @@ public partial class UsersPlugin
                         new Heading3("2FA code / recovery"),
                         new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck) { Autofocus = true }
                             .Save(out var codeInput),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {

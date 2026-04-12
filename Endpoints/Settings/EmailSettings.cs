@@ -97,7 +97,7 @@ public partial class UsersPlugin
                                 .Save(out var emailInput),
                             ..Presets.CreateAuthElements(req)
                                 .Save(out var auth).Elements,
-                            new SubmitButton(new("bi bi-arrow-return-right", "Continue"))
+                            new ContinueButton()
                         ],
                         async actionReq =>
                         {
