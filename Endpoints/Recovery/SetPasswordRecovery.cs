@@ -49,7 +49,7 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || password1 != password2)
-                                return page.DynamicErrorAction("Please enter a new password twice.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter a new password twice.");
 
                             try
                             {
@@ -59,7 +59,7 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                return page.DynamicErrorAction(ex.Message);
+                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
                             }
                         }
 

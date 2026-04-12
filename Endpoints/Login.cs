@@ -40,7 +40,7 @@ public partial class UsersPlugin
                         if (actionReq.HasUser)
                             return new Navigate(req.RedirectUrl);
                         if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
-                            return page.DynamicErrorAction("Please enter your username and password.");
+                            return DialogBuilder.DynamicErrorAction(page, "Please enter your username and password.");
 
                         User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
                         if (user != null)
@@ -59,7 +59,7 @@ public partial class UsersPlugin
                             }
                         }
                         else
-                            return page.DynamicErrorAction("The combination of username and password you have entered isn't correct.");
+                            return DialogBuilder.DynamicErrorAction(page, "The combination of username and password you have entered isn't correct.");
                     }
                 ),
                 new Subsection(

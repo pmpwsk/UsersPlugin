@@ -38,13 +38,13 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                return page.DynamicErrorAction("Please enter your email address.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter your email address.");
     
                             User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
                             if (user == null)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                return page.DynamicErrorAction("This email address isn't associated with any account.");
+                                return DialogBuilder.DynamicErrorAction(page, "This email address isn't associated with any account.");
                             }
                             await Presets.WarningMailAsync(actionReq, user, "Username recovery", $"You requested your username, it is: {user.Username}");
                         }

@@ -31,12 +31,12 @@ public partial class UsersPlugin
                     {
                         actionReq.ForceLogin(false);
                         if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || auth.AnyEmpty)
-                            return page.DynamicErrorAction("Please enter a new password twice and authenticate yourself.");
+                            return DialogBuilder.DynamicErrorAction(page, "Please enter a new password twice and authenticate yourself.");
                         if (password1 != password2)
-                            return page.DynamicErrorAction("The passwords do not match.");
+                            return DialogBuilder.DynamicErrorAction(page, "The passwords do not match.");
 
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
 
                         try
                         {
@@ -46,7 +46,7 @@ public partial class UsersPlugin
                         }
                         catch (Exception ex)
                         {
-                            return page.DynamicErrorAction(ex.Message);
+                            return DialogBuilder.DynamicErrorAction(page, ex.Message);
                         }
                     }
                 )

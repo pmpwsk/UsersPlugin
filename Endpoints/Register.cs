@@ -46,9 +46,9 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (usernameInput.IsEmpty(out var username) || emailInput.IsEmpty(out var email) || passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2))
-                                return page.DynamicErrorAction("Please fill out all fields.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please fill out all fields.");
                             if (password1 != password2)
-                                return page.DynamicErrorAction("The passwords do not match.");
+                                return DialogBuilder.DynamicErrorAction(page, "The passwords do not match.");
                             
                             try
                             {
@@ -57,7 +57,7 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                return page.DynamicErrorAction(ex.Message);
+                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
                             }
                         }
                             

@@ -26,10 +26,10 @@ public partial class UsersPlugin
                     {
                         actionReq.ForceLogin(false);
                         if (auth.AnyEmpty)
-                            return page.DynamicErrorAction("Please authenticate yourself.");
+                            return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself.");
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
 
                         actionReq.CookieWriter?.Delete("AuthToken");
                         await actionReq.UserTable.DeleteAllTokensAsync(actionReq.User.Id);

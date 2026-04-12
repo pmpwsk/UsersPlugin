@@ -21,13 +21,15 @@ public partial class UsersPlugin
                             a => [ new BigServerActionButton(
                                 a.Value.FriendlyName ?? "Unknown",
                                 [ $"Expires: {a.Value.Expires} UTC" ],
-                                _ => page.DynamicDialogActionAsync(
+                                _ => DialogBuilder.DynamicDialogActionAsync(
+                                    page,
                                     a.Value.FriendlyName ?? "Unknown",
                                     [
                                         new Paragraph($"Expires: {a.Value.Expires} UTC"),
                                         new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
                                         new Row(
-                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => page.DynamicDialogActionAsync(
+                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.DynamicDialogActionAsync(
+                                                page,
                                                 a.Value.FriendlyName ?? "Unknown",
                                                 [
                                                     new Paragraph("Do you really want to remove this application's partial access to your account?"),
@@ -45,7 +47,7 @@ public partial class UsersPlugin
                                             new SubmitButton("Close")
                                         )
                                     ],
-                                    page.DynamicDialogCloseActionHandler
+                                    _ => DialogBuilder.DynamicDialogCloseActionAsync(page)
                                 )
                             ) ],
                             () => [ new Paragraph("There are currently no applications that have partial access to your account.") ]

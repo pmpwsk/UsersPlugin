@@ -40,7 +40,7 @@ public partial class UsersPlugin
                         if (actionReq.HasUser && actionReq.User.MailToken != null)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                return page.DynamicErrorAction("Please enter your email address.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter your email address.");
 
                             try
                             {
@@ -50,7 +50,7 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                return page.DynamicErrorAction(ex.Message);
+                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
                             }
                         }
                         

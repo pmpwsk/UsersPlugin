@@ -38,7 +38,7 @@ public partial class UsersPlugin
                                 mail = HttpUtility.UrlDecode(setting[0]);
                                 string existingCode = setting[1];
                                 await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {existingCode}", mail);
-                                return page.DynamicInfoAction("The code has been sent.");
+                                return DialogBuilder.DynamicInfoAction(page, "The code has been sent.");
                             })
                         ]
                     ),
@@ -54,7 +54,7 @@ public partial class UsersPlugin
                         {
                             actionReq.ForceLogin(false);
                             if (codeInput.IsEmpty(out var code))
-                                return page.DynamicErrorAction("Please enter the verification code.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter the verification code.");
 
                             if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
                                 return new Reload();
@@ -64,7 +64,7 @@ public partial class UsersPlugin
                             if (code != existingCode)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                return page.DynamicErrorAction("The provided code is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
                             }
                             try
                             {
@@ -76,7 +76,7 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                return page.DynamicErrorAction(ex.Message);
+                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
                             }
                         }
                     )
@@ -103,18 +103,18 @@ public partial class UsersPlugin
                         {
                             actionReq.ForceLogin(false);
                             if (emailInput.IsEmpty(out var email) || auth.AnyEmpty)
-                                return page.DynamicErrorAction("Please enter an email address and authenticate yourself.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter an email address and authenticate yourself.");
 
                             if (!await Presets.ValidateAuth(actionReq, auth))
-                                return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
 
                             if (actionReq.User.MailAddress == email)
-                                return page.DynamicErrorAction("The provided email address is the same as the old one.");
+                                return DialogBuilder.DynamicErrorAction(page, "The provided email address is the same as the old one.");
 
                             if (!AccountManager.CheckMailAddressFormat(email))
-                                return page.DynamicErrorAction("The provided email address is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, "The provided email address is invalid.");
                             if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
-                                return page.DynamicErrorAction("This email address is already being used by another account.");
+                                return DialogBuilder.DynamicErrorAction(page, "This email address is already being used by another account.");
 
                             string code = Parsers.RandomString(10);
                             await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");

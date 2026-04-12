@@ -30,13 +30,13 @@ public partial class UsersPlugin
                         {
                             req.ForceLogin(false);
                             if (auth.AnyEmpty)
-                                return page.DynamicErrorAction("Please authenticate yourself.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself.");
 
                             if (req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
                                 return new Reload();
                             
                             if (!await Presets.ValidateAuth(actionReq, auth))
-                                return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
                             
                             await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA disabled", "Two-factor authentication has just been disabled.");
@@ -90,16 +90,16 @@ public partial class UsersPlugin
                         {
                             actionReq.ForceLogin(false);
                             if (codeInput.IsEmpty(out var code) || auth.AnyEmpty)
-                                return page.DynamicErrorAction("Please authenticate yourself and enter the current code.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself and enter the current code.");
 
                             if (actionReq.User.TwoFactor.TOTP == null || actionReq.User.TwoFactor.TOTP.Verified)
                                 return new Reload();
                             
                             if (!await Presets.ValidateAuth(actionReq, auth))
-                                return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
                             
                             if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, false))
-                                return page.DynamicErrorAction("The provided code is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
                 
                             await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA enabled", "Two-factor authentication has just been enabled.");

@@ -38,7 +38,7 @@ public partial class UsersPlugin
                             if (actionReq.HasUser && actionReq.User.MailToken != null)
                                 await Presets.WarningMailAsync(req, actionReq.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
                             
-                            return page.DynamicInfoAction("The code has been sent.");
+                            return DialogBuilder.DynamicInfoAction(page, "The code has been sent.");
                         })
                     ]
                 ),
@@ -53,13 +53,13 @@ public partial class UsersPlugin
                     async actionReq =>
                     {
                         if (codeInput.IsEmpty(out var code))
-                            return page.DynamicErrorAction("Please enter the verification code.");
+                            return DialogBuilder.DynamicErrorAction(page, "Please enter the verification code.");
                         
                         if (!actionReq.HasUser || actionReq.User.MailToken == null
                             || await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
                             return new Navigate(req.RedirectUrl);
                         else
-                            return page.DynamicErrorAction("The provided code is invalid.");
+                            return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
                     }
                 ),
                 new Subsection(

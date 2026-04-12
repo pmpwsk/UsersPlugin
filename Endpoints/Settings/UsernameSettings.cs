@@ -29,10 +29,10 @@ public partial class UsersPlugin
                     {
                         actionReq.ForceLogin(false);
                         if (usernameInput.IsEmpty(out var username) || auth.AnyEmpty)
-                            return page.DynamicErrorAction("Please enter a username and authenticate yourself.");
+                            return DialogBuilder.DynamicErrorAction(page, "Please enter a username and authenticate yourself.");
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            return page.DynamicErrorAction($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
 
                         try
                         {
@@ -42,7 +42,7 @@ public partial class UsersPlugin
                         }
                         catch (Exception ex)
                         {
-                            return page.DynamicErrorAction(ex.Message);
+                            return DialogBuilder.DynamicErrorAction(page, ex.Message);
                         }
                     }
                 )

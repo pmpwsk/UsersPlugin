@@ -40,10 +40,10 @@ public partial class UsersPlugin
                         if (actionReq.LoginState == LoginState.Needs2FA && actionReq.User.TwoFactor.TOTPEnabled())
                         {
                             if (codeInput.IsEmpty(out var code))
-                                return page.DynamicErrorAction("Please enter the current code or a recovery code.");
+                                return DialogBuilder.DynamicErrorAction(page, "Please enter the current code or a recovery code.");
                             
                             if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, true))
-                                return page.DynamicErrorAction("The provided code is invalid.");
+                                return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
                                 
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "New login", "Someone just successfully logged into your account.");
                         }
