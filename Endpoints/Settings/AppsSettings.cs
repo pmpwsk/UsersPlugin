@@ -26,15 +26,15 @@ public partial class UsersPlugin
                                     [
                                         new Paragraph($"Expires: {a.Value.Expires} UTC"),
                                         new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
-                                        new Row([
+                                        new Row(
                                             new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => page.DynamicDialogActionAsync(
                                                 a.Value.FriendlyName ?? "Unknown",
                                                 [
                                                     new Paragraph("Do you really want to remove this application's partial access to your account?"),
-                                                    new Row([
+                                                    new Row(
                                                         new ContinueButton(),
                                                         new DialogCancelButton(page)
-                                                    ])
+                                                    )
                                                 ],
                                                 async actionReq =>
                                                 {
@@ -43,7 +43,7 @@ public partial class UsersPlugin
                                                 }
                                             )),
                                             new SubmitButton("Close")
-                                        ])
+                                        )
                                     ],
                                     page.DynamicDialogCloseActionHandler
                                 )
