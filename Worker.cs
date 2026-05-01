@@ -9,6 +9,6 @@ public partial class UsersPlugin
                 if (user.Settings.TryGetValue("Delete", out var ticksString)
                     && long.TryParse(ticksString, out var ticks)
                     && (new DateTime(ticks) + TimeSpan.FromDays(30)) < DateTime.UtcNow)
-                    await table.DeleteAsync(user.Id);
+                    await table.DeleteAsync(user);
     }
 }

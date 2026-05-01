@@ -83,7 +83,7 @@ public partial class UsersPlugin
             case "/users/user/delete":
             { req.ForcePOST(); req.ForceAdmin(false);
                 var id = req.Query.GetOrThrow("id");
-                await req.UserTable.DeleteAsync(id);
+                await req.UserTable.DeleteByIdAsync(id);
                 return StatusResponse.Success;
             }
 
