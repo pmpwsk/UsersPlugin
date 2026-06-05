@@ -2,7 +2,7 @@
 
 public partial class UsersPlugin
 {
-    public override async Task Work()
+    public override async Task WorkAsync()
     {
         foreach (var table in Server.Config.Accounts.UserTables.Values.Distinct())
             foreach (var user in await table.ListAllAsync())
