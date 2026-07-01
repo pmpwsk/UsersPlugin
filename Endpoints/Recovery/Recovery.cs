@@ -6,7 +6,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleRecovery(Request req)
+    [Endpoint("/recovery")]
+    protected static IResponse HandleRecovery(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

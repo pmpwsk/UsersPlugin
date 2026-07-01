@@ -4,7 +4,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleGetUsername(Request req)
+    [Endpoint("/get-username")]
+    protected static IResponse HandleGetUsername(Request req)
     {
         req.ForceGET();
         if (req.LoggedIn)

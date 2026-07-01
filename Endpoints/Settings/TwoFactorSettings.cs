@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task<Page> HandleTwoFactorSettings(Request req)
+    [Endpoint("/settings/2fa")]
+    protected static async Task<Page> HandleTwoFactorSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "2FA settings");
@@ -112,7 +113,8 @@ public partial class UsersPlugin
         return page;
     }
     
-    private static IResponse HandleTwoFactorSettingsCodes(Request req)
+    [Endpoint("/settings/2fa-codes")]
+    protected static IResponse HandleTwoFactorSettingsCodes(Request req)
     {
         req.ForceGET(); req.ForceLogin(false);
         if (req.User.TwoFactor.TOTP == null || req.User.TwoFactor.TOTPEnabled(out _))

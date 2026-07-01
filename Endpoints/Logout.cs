@@ -6,7 +6,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task<IResponse> HandleLogout(Request req)
+    [Endpoint("/logout")]
+    protected static async Task<IResponse> HandleLogout(Request req)
     {
         if (req.Method == "POST")
         {

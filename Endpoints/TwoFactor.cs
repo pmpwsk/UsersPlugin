@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleTwoFactor(Request req)
+    [Endpoint("/2fa")]
+    protected static IResponse HandleTwoFactor(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

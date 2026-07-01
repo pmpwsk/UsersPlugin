@@ -5,7 +5,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Page HandleMenu(Request req)
+    [Endpoint("/")]
+    protected static Page HandleMenu(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Account");

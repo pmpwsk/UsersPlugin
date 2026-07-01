@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleLogin(Request req)
+    [Endpoint("/login")]
+    protected static IResponse HandleLogin(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

@@ -6,7 +6,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleTwoFactorRecovery(Request req)
+    [Endpoint("/recovery/2fa")]
+    protected static IResponse HandleTwoFactorRecovery(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

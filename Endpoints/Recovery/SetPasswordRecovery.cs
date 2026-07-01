@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task<IResponse> HandleSetPasswordRecovery(Request req)
+    [Endpoint("/recovery/password-set")]
+    protected static async Task<IResponse> HandleSetPasswordRecovery(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

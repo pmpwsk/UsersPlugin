@@ -5,7 +5,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static async Task<IResponse> HandleVerifyLink(Request req)
+    [Endpoint("/verify-link")]
+    protected static async Task<IResponse> HandleVerifyLink(Request req)
     {
         req.ForceGET();
         var uid = req.Query.GetOrThrow("user");

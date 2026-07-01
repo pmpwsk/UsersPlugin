@@ -5,7 +5,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Page HandleUsernameSettings(Request req)
+    [Endpoint("/settings/username")]
+    protected static Page HandleUsernameSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Username settings");

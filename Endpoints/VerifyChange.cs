@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleVerifyChange(Request req)
+    [Endpoint("/verify-change")]
+    protected static IResponse HandleVerifyChange(Request req)
     {
         req.ForceGET();
         switch (req.LoginState)

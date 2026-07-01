@@ -5,7 +5,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Page HandleDeleteSettings(Request req)
+    [Endpoint("/settings/delete")]
+    protected static Page HandleDeleteSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Delete account");

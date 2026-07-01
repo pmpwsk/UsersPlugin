@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleVerify(Request req)
+    [Endpoint("/verify")]
+    protected static IResponse HandleVerify(Request req)
     {
         req.ForceGET();
         if (!req.HasUser)

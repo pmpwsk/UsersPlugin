@@ -7,7 +7,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Page HandleEmailSettings(Request req)
+    [Endpoint("/settings/email")]
+    protected static Page HandleEmailSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Email settings");

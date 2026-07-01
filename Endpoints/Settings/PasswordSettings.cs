@@ -5,7 +5,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static Page HandlePasswordSettings(Request req)
+    [Endpoint("/settings/password")]
+    protected static Page HandlePasswordSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         var page = new Page(req, true, "Password settings");

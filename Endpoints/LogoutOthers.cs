@@ -6,7 +6,8 @@ namespace uwap.WebFramework.Plugins;
 
 public partial class UsersPlugin
 {
-    private static IResponse HandleLogoutOthers(Request req)
+    [Endpoint("/logout-others")]
+    protected static IResponse HandleLogoutOthers(Request req)
     {
         req.ForceGET(); req.ForceLogin();
         return new Page(
