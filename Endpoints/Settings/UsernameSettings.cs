@@ -1,4 +1,3 @@
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -30,20 +29,26 @@ public partial class UsersPlugin
                     {
                         actionReq.ForceLogin(false);
                         if (usernameInput.IsEmpty(out var username) || auth.AnyEmpty)
-                            return DialogBuilder.DynamicErrorAction(page, "Please enter a username and authenticate yourself.");
+                        {
+                            DialogBuilder.Error(page, "Please enter a username and authenticate yourself.");
+                            return;
+                        }
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                        {
+                            DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            return;
+                        }
 
                         try
                         {
                             await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, username);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "Username changed", $"Your username was just changed to {username}.");
-                            return new Navigate("../settings");
+                            page.Navigate("../settings");
                         }
                         catch (Exception ex)
                         {
-                            return DialogBuilder.DynamicErrorAction(page, ex.Message);
+                            DialogBuilder.Error(page, ex.Message);
                         }
                     }
                 )

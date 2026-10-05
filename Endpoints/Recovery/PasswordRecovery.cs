@@ -1,6 +1,5 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -39,13 +38,17 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                return DialogBuilder.DynamicErrorAction(page, "Please enter your email address.");
+                            {
+                                DialogBuilder.Error(page, "Please enter your email address.");
+                                return;
+                            }
 
                             User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
                             if (user == null)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                return DialogBuilder.DynamicErrorAction(page, "This email address isn't associated with any account.");
+                                DialogBuilder.Error(page, "This email address isn't associated with any account.");
+                                return;
                             }
                             string code = Parsers.RandomString(64);
                             await actionReq.UserTable.SetSettingAsync(user.Id, "PasswordReset", code);
@@ -53,7 +56,7 @@ public partial class UsersPlugin
                             await Presets.WarningMailAsync(actionReq, user, "Password recovery", $"You requested password recovery. Open the following link to reset your password:\n<a href=\"{url}\">{url}</a>\nYou can cancel the password reset in the account panel.");
                         }
 
-                        return new Navigate("../login" + req.CurrentRedirectQuery);
+                        page.Navigate("../login" + req.CurrentRedirectQuery);
                     }
                 )
             ]

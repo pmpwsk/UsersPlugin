@@ -1,4 +1,3 @@
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -22,14 +21,14 @@ public partial class UsersPlugin
                             a => [ new BigServerActionButton(
                                 a.Value.FriendlyName ?? "Unknown",
                                 [ $"Expires: {a.Value.Expires} UTC" ],
-                                _ => DialogBuilder.DynamicDialogActionAsync(
+                                _ => DialogBuilder.OpenTask(
                                     page,
                                     a.Value.FriendlyName ?? "Unknown",
                                     [
                                         new Paragraph($"Expires: {a.Value.Expires} UTC"),
                                         new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
                                         new Row(
-                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.DynamicDialogActionAsync(
+                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.OpenTask(
                                                 page,
                                                 a.Value.FriendlyName ?? "Unknown",
                                                 [
@@ -42,13 +41,13 @@ public partial class UsersPlugin
                                                 async actionReq =>
                                                 {
                                                     await actionReq.UserTable.DeleteTokenAsync(actionReq.User.Id, a.Key);
-                                                    return new Reload();
+                                                    page.Reload();
                                                 }
                                             )),
                                             new SubmitButton("Close")
                                         )
                                     ],
-                                    _ => DialogBuilder.DynamicDialogCloseActionAsync(page)
+                                    _ => DialogBuilder.CloseTask(page)
                                 )
                             ) ],
                             () => [ new Paragraph("There are currently no applications that have partial access to your account.") ]

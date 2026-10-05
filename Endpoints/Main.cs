@@ -1,4 +1,3 @@
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -21,8 +20,6 @@ public partial class UsersPlugin
                     await req.UserTable.DeleteSettingAsync(req.User.Id, "PasswordReset");
                     if (section != null && passwordResetSubsection != null)
                         section.Subsections.Remove(passwordResetSubsection);
-                            
-                    return new Nothing();
                 })
             ]
         );

@@ -1,6 +1,5 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -39,7 +38,7 @@ public partial class UsersPlugin
                             if (actionReq.HasUser && actionReq.User.MailToken != null)
                                 await Presets.WarningMailAsync(req, actionReq.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
                             
-                            return DialogBuilder.DynamicInfoAction(page, "The code has been sent.");
+                            DialogBuilder.Info(page, "The code has been sent.");
                         })
                     ]
                 ),
@@ -54,13 +53,12 @@ public partial class UsersPlugin
                     async actionReq =>
                     {
                         if (codeInput.IsEmpty(out var code))
-                            return DialogBuilder.DynamicErrorAction(page, "Please enter the verification code.");
-                        
-                        if (!actionReq.HasUser || actionReq.User.MailToken == null
+                            DialogBuilder.Error(page, "Please enter the verification code.");
+                        else if (!actionReq.HasUser || actionReq.User.MailToken == null
                             || await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
-                            return new Navigate(req.RedirectUrl);
+                            page.Navigate(req.RedirectUrl);
                         else
-                            return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
+                            DialogBuilder.Error(page, "The provided code is invalid.");
                     }
                 ),
                 new Subsection(

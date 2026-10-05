@@ -1,6 +1,5 @@
 using System.Text;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -31,17 +30,17 @@ public partial class UsersPlugin
                         {
                             req.ForceLogin(false);
                             if (auth.AnyEmpty)
-                                return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself.");
-
-                            if (req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
-                                return new Reload();
-                            
-                            if (!await Presets.ValidateAuth(actionReq, auth))
-                                return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-                            
-                            await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
-                            await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA disabled", "Two-factor authentication has just been disabled.");
-                            return new Navigate("../settings");
+                                DialogBuilder.Error(page, "Please authenticate yourself.");
+                            else if (req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
+                                page.Reload();
+                            else if (!await Presets.ValidateAuth(actionReq, auth))
+                                DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            else
+                            {
+                                await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
+                                await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA disabled", "Two-factor authentication has just been disabled.");
+                                page.Navigate("../settings");
+                            }
                         }
                     )
                 ]
@@ -91,20 +90,19 @@ public partial class UsersPlugin
                         {
                             actionReq.ForceLogin(false);
                             if (codeInput.IsEmpty(out var code) || auth.AnyEmpty)
-                                return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself and enter the current code.");
-
-                            if (actionReq.User.TwoFactor.TOTP == null || actionReq.User.TwoFactor.TOTP.Verified)
-                                return new Reload();
-                            
-                            if (!await Presets.ValidateAuth(actionReq, auth))
-                                return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-                            
-                            if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, false))
-                                return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
-                
-                            await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
-                            await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA enabled", "Two-factor authentication has just been enabled.");
-                            return new Navigate("../settings");
+                                DialogBuilder.Error(page, "Please authenticate yourself and enter the current code.");
+                            else if (actionReq.User.TwoFactor.TOTP == null || actionReq.User.TwoFactor.TOTP.Verified)
+                                page.Reload();
+                            else if (!await Presets.ValidateAuth(actionReq, auth))
+                                DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            else if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, false))
+                                DialogBuilder.Error(page, "The provided code is invalid.");
+                            else
+                            {
+                                await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
+                                await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA enabled", "Two-factor authentication has just been enabled.");
+                                page.Navigate("../settings");
+                            }
                         }
                     )
                 ]

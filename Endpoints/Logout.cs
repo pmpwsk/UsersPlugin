@@ -1,5 +1,4 @@
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -16,33 +15,29 @@ public partial class UsersPlugin
         }
         
         req.ForceGET(); req.ForceLogin();
-        return new Page(
-            req, true,
+        var page = new Page(req, true, "Logout");
+        page.Sidebar.Items.ReplaceAll(MainSidebar(req));
+        page.Sections.Add(new(
             "Logout",
-            MainSidebar(req),
             [
-                new Section(
-                    "Logout",
+                new Subsection(
+                    null,
                     [
-                        new Subsection(
-                            null,
-                            [
-                                new Paragraph("Are you sure you want to log out?."),
-                                new BigServerActionButton(
-                                    "Yes, log me out",
-                                    [],
-                                    async actionReq =>
-                                    {
-                                        await actionReq.UserTable.LogoutAsync(req);
-                                        return new Navigate("/");
-                                    }
-                                ),
-                                new BigLinkButton("Back to account", [], ".")
-                            ]
-                        )
+                        new Paragraph("Are you sure you want to log out?."),
+                        new BigServerActionButton(
+                            "Yes, log me out",
+                            [],
+                            async actionReq =>
+                            {
+                                await actionReq.UserTable.LogoutAsync(req);
+                                page.Navigate("/");
+                            }
+                        ),
+                        new BigLinkButton("Back to account", [], ".")
                     ]
                 )
             ]
-        );
+        ));
+        return page;
     }
 }

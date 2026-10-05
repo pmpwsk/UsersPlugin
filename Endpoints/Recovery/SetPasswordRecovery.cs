@@ -1,6 +1,5 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -50,7 +49,10 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || password1 != password2)
-                                return DialogBuilder.DynamicErrorAction(page, "Please enter a new password twice.");
+                            {
+                                DialogBuilder.Error(page, "Please enter a new password twice.");
+                                return;
+                            }
 
                             try
                             {
@@ -60,11 +62,12 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
+                                DialogBuilder.Error(page, ex.Message);
+                                return;
                             }
                         }
 
-                        return new Navigate("../login" + req.CurrentRedirectQuery);
+                        page.Navigate("../login" + req.CurrentRedirectQuery);
                     }
                 )
             ]

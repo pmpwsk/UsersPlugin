@@ -1,6 +1,5 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -41,15 +40,21 @@ public partial class UsersPlugin
                         if (actionReq.LoginState == LoginState.Needs2FA && actionReq.User.TwoFactor.TOTPEnabled())
                         {
                             if (codeInput.IsEmpty(out var code))
-                                return DialogBuilder.DynamicErrorAction(page, "Please enter the current code or a recovery code.");
+                            {
+                                DialogBuilder.Error(page, "Please enter the current code or a recovery code.");
+                                return;
+                            }
                             
                             if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, true))
-                                return DialogBuilder.DynamicErrorAction(page, "The provided code is invalid.");
+                            {
+                                DialogBuilder.Error(page, "The provided code is invalid.");
+                                return;
+                            }
                                 
                             await Presets.WarningMailAsync(actionReq, actionReq.User, "New login", "Someone just successfully logged into your account.");
                         }
                         
-                        return new Navigate(req.RedirectUrl);
+                        page.Navigate(req.RedirectUrl);
                     }
                 ),
                 new Subsection(

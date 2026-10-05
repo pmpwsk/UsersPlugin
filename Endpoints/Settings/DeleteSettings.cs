@@ -1,4 +1,3 @@
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -27,16 +26,17 @@ public partial class UsersPlugin
                     {
                         actionReq.ForceLogin(false);
                         if (auth.AnyEmpty)
-                            return DialogBuilder.DynamicErrorAction(page, "Please authenticate yourself.");
-    
-                        if (!await Presets.ValidateAuth(actionReq, auth))
-                            return DialogBuilder.DynamicErrorAction(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-
-                        actionReq.CookieWriter?.Delete("AuthToken");
-                        await actionReq.UserTable.DeleteAllTokensAsync(actionReq.User.Id);
-                        await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
-                        await Presets.WarningMailAsync(actionReq, actionReq.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
-                        return new Navigate("/");
+                            DialogBuilder.Error(page, "Please authenticate yourself.");
+                        else if (!await Presets.ValidateAuth(actionReq, auth))
+                            DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                        else
+                        {
+                            actionReq.CookieWriter?.Delete("AuthToken");
+                            await actionReq.UserTable.DeleteAllTokensAsync(actionReq.User.Id);
+                            await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
+                            await Presets.WarningMailAsync(actionReq, actionReq.User, "Account deletion", "You just requested your account to be deleted. We will keep your data for another 30 days, in case you change your mind. If you want to restore your account, simply log in again within the next 30 days. If you want us to delete your data immediately, please contact us by replying to this email.");
+                            page.Navigate("/");
+                        }
                     }
                 )
             ]

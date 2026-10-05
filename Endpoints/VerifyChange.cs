@@ -1,6 +1,5 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
-using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -41,21 +40,21 @@ public partial class UsersPlugin
                         if (actionReq.HasUser && actionReq.User.MailToken != null)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                return DialogBuilder.DynamicErrorAction(page, "Please enter your email address.");
-
-                            try
-                            {
-                                await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, email);
-                                var user = await actionReq.UserTable.SetNewMailTokenAsync(actionReq.User.Id);
-                                await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
-                            }
-                            catch (Exception ex)
-                            {
-                                return DialogBuilder.DynamicErrorAction(page, ex.Message);
-                            }
+                                DialogBuilder.Error(page, "Please enter your email address.");
+                            else
+                                try
+                                {
+                                    await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, email);
+                                    var user = await actionReq.UserTable.SetNewMailTokenAsync(actionReq.User.Id);
+                                    await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    DialogBuilder.Error(page, ex.Message);
+                                }
                         }
                         
-                        return new Navigate("verify");
+                        page.Navigate("verify");
                     }
                 )
             ]
