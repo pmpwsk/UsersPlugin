@@ -21,14 +21,14 @@ public partial class UsersPlugin
                             a => [ new BigServerActionButton(
                                 a.Value.FriendlyName ?? "Unknown",
                                 [ $"Expires: {a.Value.Expires} UTC" ],
-                                _ => DialogBuilder.OpenTask(
+                                _ => DialogBuilder.Open(
                                     page,
                                     a.Value.FriendlyName ?? "Unknown",
                                     [
                                         new Paragraph($"Expires: {a.Value.Expires} UTC"),
                                         new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
                                         new Row(
-                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.OpenTask(
+                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.Open(
                                                 page,
                                                 a.Value.FriendlyName ?? "Unknown",
                                                 [
@@ -47,7 +47,7 @@ public partial class UsersPlugin
                                             new SubmitButton("Close")
                                         )
                                     ],
-                                    _ => DialogBuilder.CloseTask(page)
+                                    _ => DialogBuilder.Close(page)
                                 )
                             ) ],
                             () => [ new Paragraph("There are currently no applications that have partial access to your account.") ]
