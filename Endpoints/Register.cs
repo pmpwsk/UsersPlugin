@@ -1,5 +1,6 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -46,19 +47,20 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (usernameInput.IsEmpty(out var username) || emailInput.IsEmpty(out var email) || passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2))
-                                DialogBuilder.Error(page, "Please fill out all fields.");
-                            else if (password1 != password2)
-                                DialogBuilder.Error(page, "The passwords do not match.");
-                            else
-                                try
-                                {
-                                    User user = await req.UserTable.RegisterAsync(username, email, password1, actionReq);
-                                    await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
-                                }
-                                catch (Exception ex)
-                                {
-                                    DialogBuilder.Error(page, ex.Message);
-                                }
+                                throw new ForcedActionError("Please fill out all fields.");
+                            
+                            if (password1 != password2)
+                                throw new ForcedActionError("The passwords do not match.");
+                            
+                            try
+                            {
+                                User user = await req.UserTable.RegisterAsync(username, email, password1, actionReq);
+                                await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new ForcedActionError(ex.Message);
+                            }
                         }
                             
                         page.Navigate("verify" + req.CurrentRedirectQuery);

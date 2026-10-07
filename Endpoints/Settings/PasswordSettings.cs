@@ -1,3 +1,4 @@
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -29,24 +30,28 @@ public partial class UsersPlugin
                     ],
                     async actionReq =>
                     {
-                        actionReq.ForceLogin(false);
+                        if (!actionReq.LoggedIn)
+                            throw new ForcedActionReload();
+                        
                         if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || auth.AnyEmpty)
-                            DialogBuilder.Error(page, "Please enter a new password twice and authenticate yourself.");
-                        else if (password1 != password2)
-                            DialogBuilder.Error(page, "The passwords do not match.");
-                        else if (!await Presets.ValidateAuth(actionReq, auth))
-                            DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-                        else
-                            try
-                            {
-                                await req.UserTable.SetPasswordAsync(req.User.Id, password1);
-                                await Presets.WarningMailAsync(req, req.User, "Password changed", "Your password was just changed.");
-                                page.Navigate("../settings");
-                            }
-                            catch (Exception ex)
-                            {
-                                DialogBuilder.Error(page, ex.Message);
-                            }
+                            throw new ForcedActionError("Please enter a new password twice and authenticate yourself.");
+                        
+                        if (password1 != password2)
+                            throw new ForcedActionError("The passwords do not match.");
+                        
+                        if (!await Presets.ValidateAuth(actionReq, auth))
+                            throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                        
+                        try
+                        {
+                            await req.UserTable.SetPasswordAsync(req.User.Id, password1);
+                            await Presets.WarningMailAsync(req, req.User, "Password changed", "Your password was just changed.");
+                            page.Navigate("../settings");
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ForcedActionError(ex.Message);
+                        }
                     }
                 )
             ]

@@ -1,5 +1,6 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -39,28 +40,25 @@ public partial class UsersPlugin
                     {
                         if (actionReq.HasUser)
                             page.Navigate(req.RedirectUrl);
-                        else if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
-                            DialogBuilder.Error(page, "Please enter your username and password.");
+                        
+                        if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
+                            throw new ForcedActionError("Please enter your username and password.");
+                        
+                        User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
+                        if (user == null)
+                            throw new ForcedActionError("The combination of username and password you have entered isn't correct.");
+                        
+                        if (user.Settings.ContainsKey("Delete"))
+                            await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
+                        if (user.TwoFactor.TOTPEnabled())
+                            page.Navigate("2fa" + req.CurrentRedirectQuery);
                         else
                         {
-                            User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
-                            if (user != null)
-                            {
-                                if (user.Settings.ContainsKey("Delete"))
-                                    await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
-                                if (user.TwoFactor.TOTPEnabled())
-                                    page.Navigate("2fa" + req.CurrentRedirectQuery);
-                                else
-                                {
-                                    await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
-                                    if (user.MailToken == null)
-                                        page.Navigate(req.RedirectUrl);
-                                    else
-                                        page.Navigate("verify" + req.CurrentRedirectQuery);
-                                }
-                            }
+                            await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
+                            if (user.MailToken == null)
+                                page.Navigate(req.RedirectUrl);
                             else
-                                DialogBuilder.Error(page, "The combination of username and password you have entered isn't correct.");
+                                page.Navigate("verify" + req.CurrentRedirectQuery);
                         }
                     }
                 ),

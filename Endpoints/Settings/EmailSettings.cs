@@ -1,5 +1,6 @@
 using System.Web;
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -25,18 +26,16 @@ public partial class UsersPlugin
                             new Paragraph($"You requested to change your email to '{mail}'. Please enter the verification code provided in the email we sent to that address here."),
                             new ServerActionButton("Cancel", async actionReq =>
                             {
-                                actionReq.ForceLogin(false);
+                                if (!actionReq.LoggedIn)
+                                    throw new ForcedActionReload();
                                 await req.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
                                 page.Reload();
                             }),
                             new ServerActionButton("Resend", async actionReq =>
                             {
-                                actionReq.ForceLogin(false);
-                                if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
-                                {
-                                    page.Reload();
-                                    return;
-                                }
+                                if (!actionReq.LoggedIn || !actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
+                                    throw new ForcedActionReload();
+
                                 setting = settingRaw.Split('&');
                                 mail = HttpUtility.UrlDecode(setting[0]);
                                 string existingCode = setting[1];
@@ -55,26 +54,22 @@ public partial class UsersPlugin
                         ],
                         async actionReq =>
                         {
-                            actionReq.ForceLogin(false);
+                            if (!actionReq.LoggedIn)
+                                throw new ForcedActionReload();
+                            
                             if (codeInput.IsEmpty(out var code))
-                            {
-                                DialogBuilder.Error(page, "Please enter the verification code.");
-                                return;
-                            }
+                                throw new ForcedActionError("Please enter the verification code.");
 
                             if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
-                            {
-                                page.Reload();
-                                return;
-                            }
+                                throw new ForcedActionReload();
+                            
                             setting = settingRaw.Split('&');
                             mail = HttpUtility.UrlDecode(setting[0]);
                             string existingCode = setting[1];
                             if (code != existingCode)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                DialogBuilder.Error(page, "The provided code is invalid.");
-                                return;
+                                throw new ForcedActionError("The provided code is invalid.");
                             }
                             
                             try
@@ -87,7 +82,7 @@ public partial class UsersPlugin
                             }
                             catch (Exception ex)
                             {
-                                DialogBuilder.Error(page, ex.Message);
+                                throw new ForcedActionError(ex.Message);
                             }
                         }
                     )
@@ -112,24 +107,28 @@ public partial class UsersPlugin
                         ],
                         async actionReq =>
                         {
-                            actionReq.ForceLogin(false);
+                            if (!actionReq.LoggedIn)
+                                throw new ForcedActionReload();
+                            
                             if (emailInput.IsEmpty(out var email) || auth.AnyEmpty)
-                                DialogBuilder.Error(page, "Please enter an email address and authenticate yourself.");
-                            else if (!await Presets.ValidateAuth(actionReq, auth))
-                                DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-                            else if (actionReq.User.MailAddress == email)
-                                DialogBuilder.Error(page, "The provided email address is the same as the old one.");
-                            else if (!AccountManager.CheckMailAddressFormat(email))
-                                DialogBuilder.Error(page, "The provided email address is invalid.");
-                            else if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
-                                DialogBuilder.Error(page, "This email address is already being used by another account.");
-                            else
-                            {
-                                string code = Parsers.RandomString(10);
-                                await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
-                                await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
-                                page.Navigate("email");
-                            }
+                                throw new ForcedActionError("Please enter an email address and authenticate yourself.");
+                            
+                            if (!await Presets.ValidateAuth(actionReq, auth))
+                                throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            
+                            if (actionReq.User.MailAddress == email)
+                                throw new ForcedActionError("The provided email address is the same as the old one.");
+                            
+                            if (!AccountManager.CheckMailAddressFormat(email))
+                                throw new ForcedActionError("The provided email address is invalid.");
+                            
+                            if (await actionReq.UserTable.FindByMailAddressAsync(email) != null)
+                                throw new ForcedActionError("This email address is already being used by another account.");
+                            
+                            string code = Parsers.RandomString(10);
+                            await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
+                            await Presets.WarningMailAsync(actionReq, actionReq.User, "Email change", $"You requested to change your email address to this address. Your verification code is: {code}", email);
+                            page.Navigate("email");
                         }
                     )
                 ]

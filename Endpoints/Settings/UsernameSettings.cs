@@ -1,3 +1,4 @@
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -27,18 +28,14 @@ public partial class UsersPlugin
                     ],
                     async actionReq =>
                     {
-                        actionReq.ForceLogin(false);
+                        if (!actionReq.LoggedIn)
+                            throw new ForcedActionReload();
+                        
                         if (usernameInput.IsEmpty(out var username) || auth.AnyEmpty)
-                        {
-                            DialogBuilder.Error(page, "Please enter a username and authenticate yourself.");
-                            return;
-                        }
+                            throw new ForcedActionError("Please enter a username and authenticate yourself.");
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                        {
-                            DialogBuilder.Error(page, $"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
-                            return;
-                        }
+                            throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
 
                         try
                         {
@@ -48,7 +45,7 @@ public partial class UsersPlugin
                         }
                         catch (Exception ex)
                         {
-                            DialogBuilder.Error(page, ex.Message);
+                            throw new ForcedActionError(ex.Message);
                         }
                     }
                 )

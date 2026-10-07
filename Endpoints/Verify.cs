@@ -1,5 +1,6 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -53,12 +54,13 @@ public partial class UsersPlugin
                     async actionReq =>
                     {
                         if (codeInput.IsEmpty(out var code))
-                            DialogBuilder.Error(page, "Please enter the verification code.");
-                        else if (!actionReq.HasUser || actionReq.User.MailToken == null
-                            || await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
-                            page.Navigate(req.RedirectUrl);
-                        else
-                            DialogBuilder.Error(page, "The provided code is invalid.");
+                            throw new ForcedActionError("Please enter the verification code.");
+
+                        if (actionReq.HasUser && actionReq.User.MailToken != null
+                            && !await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
+                            throw new ForcedActionError("The provided code is invalid.");
+                        
+                        page.Navigate(req.RedirectUrl);
                     }
                 ),
                 new Subsection(

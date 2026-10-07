@@ -1,5 +1,6 @@
 using uwap.WebFramework.Accounts;
 using uwap.WebFramework.Responses;
+using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -38,17 +39,13 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (emailInput.IsEmpty(out var email))
-                            {
-                                DialogBuilder.Error(page, "Please enter your email address.");
-                                return;
-                            }
+                                throw new ForcedActionError("Please enter your email address.");
     
                             User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
                             if (user == null)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                DialogBuilder.Error(page, "This email address isn't associated with any account.");
-                                return;
+                                throw new ForcedActionError("This email address isn't associated with any account.");
                             }
                             await Presets.WarningMailAsync(actionReq, user, "Username recovery", $"You requested your username, it is: {user.Username}");
                         }
