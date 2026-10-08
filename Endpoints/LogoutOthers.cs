@@ -23,7 +23,7 @@ public partial class UsersPlugin
                             [],
                             async actionReq =>
                             {
-                                await actionReq.UserTable.LogoutOthersAsync(req);
+                                await actionReq.UserTable.LogoutOthersAsync(actionReq);
                                 page.Navigate(".");
                             }
                         ),
