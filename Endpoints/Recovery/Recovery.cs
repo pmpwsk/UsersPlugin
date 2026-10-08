@@ -10,6 +10,7 @@ public partial class UsersPlugin
     protected static IResponse HandleRecovery(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         switch (req.LoginState)
         {
             case LoginState.LoggedIn:

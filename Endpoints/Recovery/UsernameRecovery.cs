@@ -11,6 +11,7 @@ public partial class UsersPlugin
     protected static IResponse HandleUsernameRecovery(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         switch (req.LoginState)
         {
             case LoginState.LoggedIn:

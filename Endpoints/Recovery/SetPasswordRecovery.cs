@@ -11,6 +11,7 @@ public partial class UsersPlugin
     protected static async Task<IResponse> HandleSetPasswordRecovery(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         switch (req.LoginState)
         {
             case LoginState.LoggedIn:

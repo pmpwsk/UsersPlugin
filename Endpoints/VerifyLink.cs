@@ -9,6 +9,7 @@ public partial class UsersPlugin
     protected static async Task<IResponse> HandleVerifyLink(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         var uid = req.Query.GetOrThrow("user");
         var code = req.Query.GetOrThrow("code");
         var user = await req.UserTable.GetByIdAsync(uid);

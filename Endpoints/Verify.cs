@@ -11,6 +11,7 @@ public partial class UsersPlugin
     protected static IResponse HandleVerify(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         if (!req.HasUser)
             return StatusResponse.NotAuthenticated;
         switch (req.LoginState)

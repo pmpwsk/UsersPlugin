@@ -10,6 +10,7 @@ public partial class UsersPlugin
     protected static IResponse HandleTwoFactorRecovery(Request req)
     {
         req.ForceGET();
+        req.ForceNotBanned();
         switch (req.LoginState)
         {
             case LoginState.LoggedIn:
