@@ -20,7 +20,7 @@ public partial class UsersPlugin
                             () => [ new Paragraph("These are the applications that have partial access to your account.") ],
                             a => [ new BigServerActionButton(
                                 a.Value.FriendlyName ?? "Unknown",
-                                [ $"Expires: {a.Value.Expires} UTC" ],
+                                $"Expires: {a.Value.Expires} UTC",
                                 _ => DialogBuilder.Open(
                                     page,
                                     a.Value.FriendlyName ?? "Unknown",
