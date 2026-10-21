@@ -32,9 +32,9 @@ public partial class UsersPlugin
                             null,
                             [
                                 new Paragraph("Here are some options to recover your account. If you still can't log in, please contact our support."),
-                                new BigLinkButton(new("bi bi-person", "Username"), ["Receive an email containing your username."], $"recovery/username{req.CurrentRedirectQuery}"),
-                                new BigLinkButton(new("bi bi-key", "Password"), ["Receive an email to reset your password."], $"recovery/password{req.CurrentRedirectQuery}"),
-                                new BigLinkButton(new("bi bi-lock", "2FA"), ["Information about 2FA recovery."], $"recovery/2fa{req.CurrentRedirectQuery}"),
+                                new BigLinkButton(new("bi bi-person", "Username"), "Receive an email containing your username.", $"recovery/username{req.CurrentRedirectQuery}"),
+                                new BigLinkButton(new("bi bi-key", "Password"), "Receive an email to reset your password.", $"recovery/password{req.CurrentRedirectQuery}"),
+                                new BigLinkButton(new("bi bi-lock", "2FA"), "Information about 2FA recovery.", $"recovery/2fa{req.CurrentRedirectQuery}"),
                                 Presets.CreateSupportButton(req)
                             ]
                         )

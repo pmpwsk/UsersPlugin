@@ -66,8 +66,8 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-life-preserver", "Account recovery"), ["Can't access your account?"], "recovery" + req.CurrentRedirectQuery),
-                        new BigLinkButton(new ("bi bi-person-vcard", "Register instead"), ["Don't have an account yet?"], "register" + req.CurrentRedirectQuery)
+                        new BigLinkButton(new("bi bi-life-preserver", "Account recovery"), "Can't access your account?", "recovery" + req.CurrentRedirectQuery),
+                        new BigLinkButton(new ("bi bi-person-vcard", "Register instead"), "Don't have an account yet?", "register" + req.CurrentRedirectQuery)
                     ]
                 )
             ]

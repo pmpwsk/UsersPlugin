@@ -27,10 +27,10 @@ public partial class UsersPlugin
         section = new Section("Account", req.User.Settings.ContainsKey("PasswordReset") ? [ passwordResetSubsection, subsection ] : [ subsection ]);
         page.Sections.Add(section);
         if (req.IsAdmin)
-            subsection.Content.Add(new BigLinkButton(new("bi bi-people", "Manage users"), [ "Control all existing users." ], "users"));
-        subsection.Content.Add(new BigLinkButton(new("bi bi-box-arrow-left", "Log out"), [ "Other devices will stay logged in." ], "logout"));
-        subsection.Content.Add(new BigLinkButton(new("bi bi-slash-circle", "Log out all other devices"), [ "This device will stay logged in." ], "logout-others"));
-        subsection.Content.Add(new BigLinkButton(new("bi bi-gear", "Settings"), [ "Control your account details." ], "settings"));
+            subsection.Content.Add(new BigLinkButton(new("bi bi-people", "Manage users"), "Control all existing users.", "users"));
+        subsection.Content.Add(new BigLinkButton(new("bi bi-box-arrow-left", "Log out"), "Other devices will stay logged in.", "logout"));
+        subsection.Content.Add(new BigLinkButton(new("bi bi-slash-circle", "Log out all other devices"), "This device will stay logged in.", "logout-others"));
+        subsection.Content.Add(new BigLinkButton(new("bi bi-gear", "Settings"), "Control your account details.", "settings"));
         return page;
     }
 }

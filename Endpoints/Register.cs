@@ -70,7 +70,7 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-key", "Log in instead"), ["Already have an account?"], "login" + req.CurrentRedirectQuery)
+                        new BigLinkButton(new("bi bi-key", "Log in instead"), "Already have an account?", "login" + req.CurrentRedirectQuery)
                     ]
                 )
             ]
