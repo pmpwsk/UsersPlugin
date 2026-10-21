@@ -67,8 +67,20 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-arrow-left-right", "Change email address"), ["Try another email address."], "verify-change"),
-                        new BigLinkButton(new("bi bi-box-arrow-left", "Log out instead"), ["Set up your account later."], $"logout{req.CurrentRedirectQuery}")
+                        new BigLinkButton(
+                            new("bi bi-arrow-left-right", "Change email address"),
+                            "Try another email address.",
+                            "verify-change"
+                        ),
+                        new BigServerActionButton(
+                            new("bi bi-box-arrow-left", "Log out instead"),
+                            "Set up your account later.",
+                            async actionReq =>
+                            {
+                                await actionReq.UserTable.LogoutAsync(actionReq);
+                                page.Navigate(req.RedirectUrl);
+                            }
+                        )
                     ]
                 )
             ]

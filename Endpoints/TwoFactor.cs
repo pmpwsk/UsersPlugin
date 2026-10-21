@@ -56,7 +56,15 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-box-arrow-left", "Log out instead"), ["Set up your account later."], $"logout{req.CurrentRedirectQuery}")
+                        new BigServerActionButton(
+                            new("bi bi-box-arrow-left", "Log out instead"),
+                            "Set up your account later.",
+                            async actionReq =>
+                            {
+                                await actionReq.UserTable.LogoutAsync(actionReq);
+                                page.Navigate(req.RedirectUrl);
+                            }
+                        )
                     ]
                 )
             ]
