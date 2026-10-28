@@ -1,3 +1,5 @@
+using uwap.WebFramework.Localization;
+using uwap.WebFramework.Responses.Base;
 using uwap.WebFramework.Responses.DefaultUI;
 
 namespace uwap.WebFramework.Plugins;
@@ -8,34 +10,39 @@ public partial class UsersPlugin
     protected static Page HandleAppsSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "Applications");
+        var page = new Page(req, true, PluginTexts.Applications);
         page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         page.Sections.Add(new(
-            "Applications",
+            PluginTexts.Applications,
             [
                 new Subsection(
                     null,
                     [
                         ..req.User.Auth.Where(a => a.Value.LimitedToPaths != null).ToElements(
-                            () => [ new Paragraph("These are the applications that have partial access to your account.") ],
+                            () => [ new Paragraph(PluginTexts.ApplicationsIntro) ],
                             a => [ new BigServerActionButton(
-                                a.Value.FriendlyName ?? "Unknown",
-                                $"Expires: {a.Value.Expires} UTC",
+                                a.Value.FriendlyName ?? CommonTexts.Unknown,
+                                $"{PluginTexts.AllowedPaths}: {(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Count : PluginTexts.All)}",
                                 _ => DialogBuilder.Open(
                                     page,
-                                    a.Value.FriendlyName ?? "Unknown",
+                                    a.Value.FriendlyName ?? CommonTexts.Unknown,
                                     [
-                                        new Paragraph($"Expires: {a.Value.Expires} UTC"),
-                                        new BulletList(a.Value.LimitedToPaths != null ? a.Value.LimitedToPaths.Select(p => new ListItem(p)) : []),
+                                        .. a.Value.LimitedToPaths != null
+                                            ? (IEnumerable<AbstractElement>) [
+                                                new Paragraph($"{PluginTexts.AllowedPaths}:"),
+                                                new BulletList(a.Value.LimitedToPaths.Select(p => new ListItem(p)))
+                                            ] : [
+                                                new Paragraph($"{PluginTexts.AllowedPaths}: {PluginTexts.All}"),
+                                            ],
                                         new Row(
-                                            new ServerSubmitButton(new("bi bi-trash", "Delete"), _ => DialogBuilder.Open(
+                                            new ServerSubmitButton(CommonTexts.Delete, _ => DialogBuilder.Open(
                                                 page,
-                                                a.Value.FriendlyName ?? "Unknown",
+                                                a.Value.FriendlyName ?? CommonTexts.Unknown,
                                                 [
-                                                    new Paragraph("Do you really want to remove this application's partial access to your account?"),
+                                                    new Paragraph(PluginTexts.ReallyRemoveApplication),
                                                     new Row(
                                                         new ContinueButton(),
-                                                        new DialogCancelButton(page)
+                                                        new DialogBackButton(page)
                                                     )
                                                 ],
                                                 async actionReq =>
@@ -44,13 +51,13 @@ public partial class UsersPlugin
                                                     page.Reload();
                                                 }
                                             )),
-                                            new SubmitButton("Close")
+                                            new SubmitButton(CommonTexts.Back)
                                         )
                                     ],
                                     _ => DialogBuilder.Close(page)
                                 )
                             ) ],
-                            () => [ new Paragraph("There are currently no applications that have partial access to your account.") ]
+                            () => [ new Paragraph(PluginTexts.NoApplications) ]
                         )
                     ]
                 )

@@ -1,3 +1,4 @@
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.DefaultUI;
 
@@ -15,25 +16,29 @@ public partial class UsersPlugin
         }
         
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "Logout");
+        var page = new Page(req, true, CommonTexts.Logout);
         page.Sidebar.Items.ReplaceAll(MainSidebar(req));
         page.Sections.Add(new(
-            "Logout",
+            CommonTexts.Logout,
             [
                 new Subsection(
                     null,
                     [
-                        new Paragraph("Are you sure you want to log out?."),
+                        new Paragraph(PluginTexts.LogoutIntro),
                         new BigServerActionButton(
-                            "Yes, log me out",
-                            [],
+                            CommonTexts.Continue,
+                            PluginTexts.OthersStayLoggedIn,
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutAsync(actionReq);
                                 page.Navigate("/");
                             }
                         ),
-                        new BigLinkButton("Back to account", [], ".")
+                        new BigLinkButton(
+                            CommonTexts.Back,
+                            PluginTexts.LogoutNoDescription,
+                            "."
+                        )
                     ]
                 )
             ]

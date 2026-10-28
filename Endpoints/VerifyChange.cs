@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -25,30 +26,30 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.Forbidden;
         }
-        var page = new Page(req, true, "Change email");
+        var page = new Page(req, true, PluginTexts.ChangeMail);
         page.Sections.Add(new(
-            "Change email",
+            PluginTexts.ChangeMail,
             [
                 new ServerForm(
                     null,
                     [
-                        new Heading3("Email"),
-                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email)
+                        new Heading3(CommonTexts.Mail),
+                        new TextBox("email", CommonTexts.MailPlaceholder, null, TextBoxRole.Email)
                             .Save(out var emailInput),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {
                         if (actionReq.HasUser && actionReq.User.MailToken != null)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                throw new ForcedActionError("Please enter your email address.");
+                                throw new ForcedActionError(CommonTexts.MailEmpty);
                             
                             try
                             {
                                 await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, email);
                                 var user = await actionReq.UserTable.SetNewMailTokenAsync(actionReq.User.Id);
-                                await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                                await Presets.WarningMailAsync(req, user, PluginTexts.Welcome, $"{PluginTexts.WelcomeMail1} <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\n{PluginTexts.WelcomeMail2} <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">{PluginTexts.Here}</a> {PluginTexts.WelcomeMail3} {user.MailToken}");
                             }
                             catch (Exception ex)
                             {

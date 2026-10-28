@@ -1,4 +1,5 @@
 using System.Text;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -11,21 +12,21 @@ public partial class UsersPlugin
     protected static async Task<Page> HandleTwoFactorSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "2FA settings");
-        page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         if (req.User.TwoFactor.TOTPEnabled())
         { //2fa enabled and verified, show option to disable it
+            var page = new Page(req, true, PluginTexts.DisableTwoFactor);
+            page.Sidebar.Items.ReplaceAll(SettingsSidebar);
             page.Sections.Add(new(
-                "2FA settings",
+                PluginTexts.DisableTwoFactor,
                 [
                     new ServerForm(
                         null,
                         [
-                            new Paragraph("Two-factor authentication is enabled. Enter your password and current 2FA code below to disable it. If you've lost access to your 2FA app, you can also enter one of your recovery codes."),
-                            new Paragraph("Warning: Other devices will remain logged in."),
+                            new Paragraph(PluginTexts.DisableTwoFactorIntro),
+                            new Paragraph(PluginTexts.WarningOthersStayLoggedIn),
                             ..Presets.CreateAuthElements(req)
                                 .Save(out var auth).Elements,
-                            new SubmitButton(new("bi bi-arrow-return-right", "Disable"))
+                            new ContinueButton()
                         ],
                         async actionReq =>
                         {
@@ -33,61 +34,64 @@ public partial class UsersPlugin
                                 throw new ForcedActionReload();
                             
                             if (auth.AnyEmpty)
-                                throw new ForcedActionError("Please authenticate yourself.");
+                                throw new ForcedActionError(CommonTexts.EmptyFields);
                             
                             if (req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
                                 throw new ForcedActionReload();
                             
                             if (!await Presets.ValidateAuth(actionReq, auth))
-                                throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                                throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
                             
                             await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
-                            await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA disabled", "Two-factor authentication has just been disabled.");
+                            await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.TwoFactorDisabled, PluginTexts.TwoFactorDisabledMail);
                             page.Navigate("../settings");
                         }
                     )
                 ]
             ));
+            return page;
         }
         else
         { //2fa not fully enabled, show option to enable it
+            var page = new Page(req, true, PluginTexts.EnableTwoFactor);
+            page.Sidebar.Items.ReplaceAll(SettingsSidebar);
             var totp = await req.UserTable.GenerateTOTPAsync(req.User.Id);
             page.Sections.Add(new(
-                "2FA settings",
+                PluginTexts.EnableTwoFactor,
                 [
                     new Subsection(
                         null,
                         [
-                            new Paragraph("Two-factor authentication is disabled. Follow the steps below to enable it."),
-                            new Paragraph("Warning: Other devices will remain logged in.")
+                            new Paragraph(PluginTexts.EnableTwoFactorIntro),
+                            new Paragraph(PluginTexts.WarningOthersStayLoggedIn)
                         ]
                     ),
                     new Subsection(
-                        "Private key",
+                        PluginTexts.PrivateKey,
                         [
-                            new Paragraph("First, scan the QR code using your authenticator app or manually enter the private key below it."),
+                            new Paragraph(PluginTexts.PrivateKeyIntro),
                             new Image(req, totp.QRImageBase64Src(req.Domain, req.User.Username)) { Style = "max-height: 15rem" },
-                            new Paragraph("Key: " + totp.SecretKeyString)
+                            new Paragraph(totp.SecretKeyString)
                         ]
                     ),
                     new Subsection(
-                        "Recovery codes",
+                        PluginTexts.RecoveryCodes,
                         [
-                            new Paragraph("Next, copy these recovery codes or download them as a file. They can be used like single-use 2FA codes in case you lose access to your authenticator app, so keep them safe."),
+                            new Paragraph(PluginTexts.RecoveryCodesIntro),
                             new BulletList(totp.RecoveryCodes.Select(c => new ListItem(c))),
-                            new LinkButton(new("bi bi-download", "Download"), "2fa-codes") { NewTab = true }
+                            new LinkButton(CommonTexts.Download, "2fa-codes") { NewTab = true }
                         ]
                     ),
                     new ServerForm(
-                        "Confirmation",
+                        PluginTexts.Confirmation,
                         [
-                            new Paragraph("Finally, enter your password and the current code shown by your 2FA app."),
+                            new Paragraph(PluginTexts.ConfirmationIntro),
                             ..Presets.CreateAuthElements(req)
                                 .Save(out var auth).Elements,
-                            new Heading3("2FA code"),
-                            new TextBox("code", "Enter the current code...", null, TextBoxRole.NoSpellcheck)
+                            new Heading3(CommonTexts.TwoFactorCode),
+                            new TextBox("code", CommonTexts.TwoFactorPlaceholder, null, TextBoxRole.NoSpellcheck)
                                 .Save(out var codeInput),
-                            new SubmitButton(new("bi bi-arrow-return-right", "Enable"))
+                            new ContinueButton()
                         ],
                         async actionReq =>
                         {
@@ -95,26 +99,26 @@ public partial class UsersPlugin
                                 throw new ForcedActionReload();
                             
                             if (codeInput.IsEmpty(out var code) || auth.AnyEmpty)
-                                throw new ForcedActionError("Please authenticate yourself and enter the current code.");
+                                throw new ForcedActionError(CommonTexts.EmptyFields);
                             
                             if (actionReq.User.TwoFactor.TOTP == null || actionReq.User.TwoFactor.TOTP.Verified)
                                 throw new ForcedActionReload();
                             
                             if (!await Presets.ValidateAuth(actionReq, auth))
-                                throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                                throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
                             
                             if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, false))
-                                throw new ForcedActionError("The provided code is invalid.");
+                                throw new ForcedActionError(PluginTexts.CodeInvalid);
                             
                             await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
-                            await Presets.WarningMailAsync(actionReq, actionReq.User, "2FA enabled", "Two-factor authentication has just been enabled.");
+                            await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.TwoFactorEnabled, PluginTexts.TwoFactorEnabledMail);
                             page.Navigate("../settings");
                         }
                     )
                 ]
             ));
+            return page;
         }
-        return page;
     }
     
     [Endpoint("/settings/2fa-codes")]
@@ -124,6 +128,6 @@ public partial class UsersPlugin
         if (req.User.TwoFactor.TOTP == null || req.User.TwoFactor.TOTPEnabled(out _))
             return StatusResponse.NotFound;
         else
-            return new ByteArrayDownloadResponse(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.RecoveryCodes)), $"2FA Recovery Codes ({req.Domain}).txt", null);
+            return new ByteArrayDownloadResponse(Encoding.UTF8.GetBytes(string.Join('\n', req.User.TwoFactor.TOTP.RecoveryCodes)), $"2FA {PluginTexts.RecoveryCodes} ({req.Domain}).txt", null);
     }
 }

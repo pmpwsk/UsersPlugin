@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -21,17 +22,17 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("../verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true, "Username recovery");
+        var page = new Page(req, true, PluginTexts.UsernameRecovery);
         page.Sidebar.Items.ReplaceAll(RecoverySidebar(req));
         page.Sections.Add(new(
-            "Username recovery",
+            PluginTexts.UsernameRecovery,
             [
                 new ServerForm(
                     null,
                     [
-                        new Paragraph("Enter your email address below and you'll receive an email telling you your username."),
-                        new Heading3("Email"),
-                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email) { Autofocus = true }
+                        new Paragraph(PluginTexts.UsernameRecoveryIntro),
+                        new Heading3(CommonTexts.Mail),
+                        new TextBox("email", CommonTexts.MailPlaceholder, null, TextBoxRole.Email) { Autofocus = true }
                             .Save(out var emailInput),
                         new ContinueButton()
                     ],
@@ -40,15 +41,15 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (emailInput.IsEmpty(out var email))
-                                throw new ForcedActionError("Please enter your email address.");
+                                throw new ForcedActionError(CommonTexts.MailEmpty);
     
                             User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
                             if (user == null)
                             {
                                 AccountManager.ReportFailedAuth(actionReq);
-                                throw new ForcedActionError("This email address isn't associated with any account.");
+                                throw new ForcedActionError(CommonTexts.MailNotFound);
                             }
-                            await Presets.WarningMailAsync(actionReq, user, "Username recovery", $"You requested your username, it is: {user.Username}");
+                            await Presets.WarningMailAsync(actionReq, user, PluginTexts.UsernameRecovery, $"{PluginTexts.UsernameRecoveryMail} {user.Username}");
                         }
 
                         page.Navigate("../login" + req.CurrentRedirectQuery);

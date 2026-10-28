@@ -1,3 +1,4 @@
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
@@ -9,22 +10,22 @@ public partial class UsersPlugin
     protected static Page HandlePasswordSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "Password settings");
+        var page = new Page(req, true, CommonTexts.Password);
         page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         page.Sections.Add(new(
-            "Password settings",
+            CommonTexts.Password,
             [
                 new ServerForm(
                     null,
                     [
-                        new Paragraph("Warning: Other devices will remain logged in."),
-                        new Heading3("New password"),
-                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true }
+                        new Paragraph(PluginTexts.WarningOthersStayLoggedIn),
+                        new Heading3(PluginTexts.NewPassword),
+                        new TextBox("password1", PluginTexts.NewPasswordPlaceholder, null, TextBoxRole.NewPassword) { Autofocus = true }
                             .Save(out var passwordInput1),
-                        new Heading3("Confirm password"),
-                        new TextBox("password2", "Enter a password...", null, TextBoxRole.NewPassword)
+                        new Heading3(PluginTexts.NewPasswordAgain),
+                        new TextBox("password2", PluginTexts.NewPasswordAgainPlaceholder, null, TextBoxRole.NewPassword)
                             .Save(out var passwordInput2),
-                        ..Presets.CreateAuthElements(req)
+                        ..Presets.CreateAuthElements(req, true)
                             .Save(out var auth).Elements,
                         new ContinueButton()
                     ],
@@ -34,18 +35,18 @@ public partial class UsersPlugin
                             throw new ForcedActionReload();
                         
                         if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || auth.AnyEmpty)
-                            throw new ForcedActionError("Please enter a new password twice and authenticate yourself.");
+                            throw new ForcedActionError(CommonTexts.EmptyFields);
                         
                         if (password1 != password2)
-                            throw new ForcedActionError("The passwords do not match.");
+                            throw new ForcedActionError(PluginTexts.NewPasswordsUnequal);
                         
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
                         
                         try
                         {
                             await req.UserTable.SetPasswordAsync(req.User.Id, password1);
-                            await Presets.WarningMailAsync(req, req.User, "Password changed", "Your password was just changed.");
+                            await Presets.WarningMailAsync(req, req.User, PluginTexts.PasswordChanged, "Your password was just changed.");
                             page.Navigate("../settings");
                         }
                         catch (Exception ex)

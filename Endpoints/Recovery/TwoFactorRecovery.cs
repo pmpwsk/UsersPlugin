@@ -22,16 +22,16 @@ public partial class UsersPlugin
         }
         return new Page(
             req, false,
-            "2FA recovery",
+            PluginTexts.TwoFactorRecovery,
             RecoverySidebar(req),
             [
                 new Section(
-                    "2FA recovery",
+                    PluginTexts.TwoFactorRecovery,
                     [
                         new Subsection(
                             null,
                             [
-                                new Paragraph("If you've lost access to your 2FA app, you can use one of the recovery codes you were given when you enabled 2FA. If you've lost those as well, please contact our support."),
+                                new Paragraph(PluginTexts.TwoFactorRecoveryIntro),
                                 Presets.CreateSupportButton(req)
                             ]
                         )

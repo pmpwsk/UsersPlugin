@@ -15,7 +15,7 @@ public partial class UsersPlugin
                 Presets.CreatePage(req, "Users", out var page, out var e);
                 page.Navigation.Add(new Button("Back", ".", "right"));
                 req.ForceAdmin();
-                e.Add(new HeadingElement("Manage users"));
+                e.Add(new HeadingElement(PluginTexts.ManageUsers));
                 foreach (var user in await req.UserTable.ListAllAsync())
                     e.Add(new ButtonElement(user.Username, user.MailAddress, $"users/user?id={user.Id}"));
                 

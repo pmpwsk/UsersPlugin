@@ -22,19 +22,19 @@ public partial class UsersPlugin
         }
         return new Page(
             req, false,
-            "Recovery",
+            PluginTexts.AccountRecovery,
             LoginSidebar(req),
             [
                 new Section(
-                    "Recovery",
+                    PluginTexts.AccountRecovery,
                     [
                         new Subsection(
                             null,
                             [
-                                new Paragraph("Here are some options to recover your account. If you still can't log in, please contact our support."),
-                                new BigLinkButton(new("bi bi-person", "Username"), "Receive an email containing your username.", $"recovery/username{req.CurrentRedirectQuery}"),
-                                new BigLinkButton(new("bi bi-key", "Password"), "Receive an email to reset your password.", $"recovery/password{req.CurrentRedirectQuery}"),
-                                new BigLinkButton(new("bi bi-lock", "2FA"), "Information about 2FA recovery.", $"recovery/2fa{req.CurrentRedirectQuery}"),
+                                new Paragraph(PluginTexts.AccountRecoveryIntro),
+                                new BigLinkButton(PluginTexts.UsernameRecovery, PluginTexts.UsernameRecoveryDescription, $"recovery/username{req.CurrentRedirectQuery}"),
+                                new BigLinkButton(PluginTexts.PasswordRecovery, PluginTexts.PasswordRecoveryDescription, $"recovery/password{req.CurrentRedirectQuery}"),
+                                new BigLinkButton(PluginTexts.TwoFactorRecovery, PluginTexts.TwoFactorRecoveryDescription, $"recovery/2fa{req.CurrentRedirectQuery}"),
                                 Presets.CreateSupportButton(req)
                             ]
                         )

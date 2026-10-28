@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -21,25 +22,25 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true, "Register");
+        var page = new Page(req, true, CommonTexts.Register);
         page.Sidebar.Items.ReplaceAll(LoginSidebar(req));
         page.Sections.Add(new(
-            "Register",
+            CommonTexts.Register,
             [
                 new ServerForm(
                     null,
                     [
-                        new Heading3("Username"),
-                        new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true }
+                        new Heading3(CommonTexts.Username),
+                        new TextBox("username", PluginTexts.NewUsernamePlaceholder, null, TextBoxRole.Username) { Autofocus = true }
                             .Save(out var usernameInput),
-                        new Heading3("Email"),
-                        new TextBox("email", "Enter your email address...", null, TextBoxRole.Email)
+                        new Heading3(CommonTexts.Mail),
+                        new TextBox("email", CommonTexts.MailPlaceholder, null, TextBoxRole.Email)
                             .Save(out var emailInput),
-                        new Heading3("Password"),
-                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword)
+                        new Heading3(CommonTexts.Password),
+                        new TextBox("password1", PluginTexts.NewPasswordPlaceholder, null, TextBoxRole.NewPassword)
                             .Save(out var passwordInput1),
-                        new Heading3("Confirm password"),
-                        new TextBox("password2", "Enter the password again...", null, TextBoxRole.NewPassword)
+                        new Heading3(PluginTexts.NewPasswordAgain),
+                        new TextBox("password2", PluginTexts.NewPasswordAgainPlaceholder, null, TextBoxRole.NewPassword)
                             .Save(out var passwordInput2),
                         new ContinueButton()
                     ],
@@ -48,15 +49,15 @@ public partial class UsersPlugin
                         if (!actionReq.HasUser)
                         {
                             if (usernameInput.IsEmpty(out var username) || emailInput.IsEmpty(out var email) || passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2))
-                                throw new ForcedActionError("Please fill out all fields.");
+                                throw new ForcedActionError(CommonTexts.EmptyFields);
                             
                             if (password1 != password2)
-                                throw new ForcedActionError("The passwords do not match.");
+                                throw new ForcedActionError(PluginTexts.NewPasswordsUnequal);
                             
                             try
                             {
                                 User user = await req.UserTable.RegisterAsync(username, email, password1, actionReq);
-                                await Presets.WarningMailAsync(req, user, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">here</a> or enter the following code: {user.MailToken}");
+                                await Presets.WarningMailAsync(req, user, PluginTexts.Welcome, $"{PluginTexts.WelcomeMail1} <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\n{PluginTexts.WelcomeMail2} <a href=\"{req.PluginPathPrefix}/verify-link?user={user.Id}&code={user.MailToken}\">{PluginTexts.Here}</a> {PluginTexts.WelcomeMail3} {user.MailToken}");
                             }
                             catch (Exception ex)
                             {
@@ -70,7 +71,7 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-key", "Log in instead"), "Already have an account?", "login" + req.CurrentRedirectQuery)
+                        new BigLinkButton(PluginTexts.LogInInstead, PluginTexts.LogInInsteadDescription, "login" + req.CurrentRedirectQuery)
                     ]
                 )
             ]

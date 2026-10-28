@@ -1,3 +1,4 @@
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
 
@@ -9,22 +10,22 @@ public partial class UsersPlugin
     protected static Page HandleUsernameSettings(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "Username settings");
+        var page = new Page(req, true, CommonTexts.Username);
         page.Sidebar.Items.ReplaceAll(SettingsSidebar);
         page.Sections.Add(new(
-            "Username settings",
+            CommonTexts.Username,
             [
                 new ServerForm(
                     null,
                     [
-                        new Paragraph("Warning: Other devices will remain logged in."),
-                        new Paragraph("Current: " + req.User.Username),
-                        new Heading3("New username"),
-                        new TextBox("username", "Enter a username...", null, TextBoxRole.Username) { Autofocus = true }
+                        new Paragraph(PluginTexts.WarningOthersStayLoggedIn),
+                        new Paragraph($"{CommonTexts.Current}: {req.User.Username}"),
+                        new Heading3(PluginTexts.NewUsername),
+                        new TextBox("username", PluginTexts.NewUsernamePlaceholder, null, TextBoxRole.Username) { Autofocus = true }
                             .Save(out var usernameInput),
                         ..Presets.CreateAuthElements(req)
                             .Save(out var auth).Elements,
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {
@@ -32,15 +33,15 @@ public partial class UsersPlugin
                             throw new ForcedActionReload();
                         
                         if (usernameInput.IsEmpty(out var username) || auth.AnyEmpty)
-                            throw new ForcedActionError("Please enter a username and authenticate yourself.");
+                            throw new ForcedActionError(CommonTexts.EmptyFields);
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
-                            throw new ForcedActionError($"The provided password{(auth.CodeInput != null ? " or 2FA code" : "")} is invalid.");
+                            throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
 
                         try
                         {
                             await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, username);
-                            await Presets.WarningMailAsync(actionReq, actionReq.User, "Username changed", $"Your username was just changed to {username}.");
+                            await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.UsernameChanged, $"{PluginTexts.UsernameChangedMail1}{username}{PluginTexts.UsernameChangedMail2}");
                             page.Navigate("../settings");
                         }
                         catch (Exception ex)

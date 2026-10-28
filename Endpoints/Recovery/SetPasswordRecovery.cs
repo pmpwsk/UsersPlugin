@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -30,33 +31,36 @@ public partial class UsersPlugin
         if (user == null || user.Settings.TryGet("PasswordReset") != code)
             return new RedirectResponse("password");
         
-        var page = new Page(req, true, "Password reset");
+        var page = new Page(req, true, PluginTexts.PasswordRecovery);
         page.Sections.Add(new(
-            "Password reset",
+            PluginTexts.PasswordRecovery,
             [
                 new ServerForm(
                     null,
                     [
-                        new Paragraph("Enter a new password and confirm it below."),
-                        new Heading3("New password"),
-                        new TextBox("password1", "Enter a password...", null, TextBoxRole.NewPassword) { Autofocus = true }
+                        new Paragraph(PluginTexts.PasswordRecoverySetIntro),
+                        new Heading3(PluginTexts.NewPassword),
+                        new TextBox("password1", PluginTexts.NewPasswordPlaceholder, null, TextBoxRole.NewPassword) { Autofocus = true }
                             .Save(out var passwordInput1),
-                        new Heading3("Confirm password"),
-                        new TextBox("password1", "Enter the password again...", null, TextBoxRole.NewPassword)
+                        new Heading3(PluginTexts.NewPasswordAgain),
+                        new TextBox("password2", PluginTexts.NewPasswordAgainPlaceholder, null, TextBoxRole.NewPassword)
                             .Save(out var passwordInput2),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Change"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {
                         if (!actionReq.HasUser)
                         {
-                            if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || password1 != password2)
-                                throw new ForcedActionError("Please enter a new password twice.");
+                            if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2))
+                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                        
+                            if (password1 != password2)
+                                throw new ForcedActionError(PluginTexts.NewPasswordsUnequal);
 
                             try
                             {
                                 await actionReq.UserTable.SetPasswordAsync(user.Id, password1);
-                                await Presets.WarningMailAsync(actionReq, user, "Password changed", "Your password was just changed by recovery.");
+                                await Presets.WarningMailAsync(actionReq, user, PluginTexts.PasswordChanged, PluginTexts.PasswordRecoveredMail);
                                 await actionReq.UserTable.DeleteSettingAsync(user.Id, "PasswordReset");
                             }
                             catch (Exception ex)

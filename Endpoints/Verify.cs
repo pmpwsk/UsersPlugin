@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -27,39 +28,39 @@ public partial class UsersPlugin
             default:
                 return StatusResponse.Forbidden;
         }
-        var page = new Page(req, true, "Verify");
+        var page = new Page(req, true, PluginTexts.Verify);
         page.Sections.Add(new(
-            "Verify",
+            PluginTexts.Verify,
             [
                 new Subsection(
                     null,
                     [
-                        new Paragraph("You should have received an email containing a verification code, please enter it below to finish setting up your account."),
-                        new ServerActionButton(new("bi bi-envelope", "Send again"), async actionReq =>
+                        new Paragraph(PluginTexts.VerifyIntro),
+                        new ServerActionButton(PluginTexts.Resend, async actionReq =>
                         {
                             if (actionReq.HasUser && actionReq.User.MailToken != null)
-                                await Presets.WarningMailAsync(req, actionReq.User, "Welcome", $"Thank you for registering on <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\nTo verify your email address, click <a href=\"{req.PluginPathPrefix}/verify-link?user={req.User.Id}&code={req.User.MailToken}\">here</a> or enter the following code: {req.User.MailToken}");
+                                await Presets.WarningMailAsync(req, actionReq.User, PluginTexts.Welcome, $"{PluginTexts.WelcomeMail1} <a href=\"{req.ProtoHost}\">{req.Domain}</a>.\n{PluginTexts.WelcomeMail2} <a href=\"{req.PluginPathPrefix}/verify-link?user={req.User.Id}&code={req.User.MailToken}\">{PluginTexts.Here}</a> {PluginTexts.WelcomeMail3} {req.User.MailToken}");
                             
-                            DialogBuilder.Info(page, "The code has been sent.");
+                            DialogBuilder.Info(page, PluginTexts.CodeSent);
                         })
                     ]
                 ),
                 new ServerForm(
                     null,
                     [
-                        new Heading3("Verification code"),
-                        new TextBox("code", "Enter the code...", null, TextBoxRole.NoSpellcheck)
+                        new Heading3(PluginTexts.MailVerificationCode),
+                        new TextBox("code", PluginTexts.CodePlaceholder, null, TextBoxRole.NoSpellcheck)
                             .Save(out var codeInput),
-                        new SubmitButton(new("bi bi-arrow-return-right", "Verify"))
+                        new ContinueButton()
                     ],
                     async actionReq =>
                     {
                         if (codeInput.IsEmpty(out var code))
-                            throw new ForcedActionError("Please enter the verification code.");
+                            throw new ForcedActionError(CommonTexts.EmptyFields);
 
                         if (actionReq.HasUser && actionReq.User.MailToken != null
                             && !await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
-                            throw new ForcedActionError("The provided code is invalid.");
+                            throw new ForcedActionError(PluginTexts.CodeInvalid);
                         
                         page.Navigate(req.RedirectUrl);
                     }
@@ -68,13 +69,13 @@ public partial class UsersPlugin
                     null,
                     [
                         new BigLinkButton(
-                            new("bi bi-arrow-left-right", "Change email address"),
-                            "Try another email address.",
+                            PluginTexts.ChangeMail,
+                            PluginTexts.ChangeMailDescription,
                             "verify-change"
                         ),
                         new BigServerActionButton(
-                            new("bi bi-box-arrow-left", "Log out instead"),
-                            "Set up your account later.",
+                            PluginTexts.LogOutInstead,
+                            PluginTexts.SetUpLater,
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutAsync(actionReq);

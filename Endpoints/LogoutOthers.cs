@@ -1,3 +1,4 @@
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.DefaultUI;
 
@@ -9,25 +10,29 @@ public partial class UsersPlugin
     protected static IResponse HandleLogoutOthers(Request req)
     {
         req.ForceGET(); req.ForceLogin();
-        var page = new Page(req, true, "Logout others");
+        var page = new Page(req, true, PluginTexts.LogoutOthers);
         page.Sidebar.Items.ReplaceAll(MainSidebar(req));
         page.Sections.Add(new(
-            "Logout others",
+            PluginTexts.LogoutOthers,
             [
                 new Subsection(
                     null,
                     [
-                        new Paragraph("Are you sure you want to log out all other browsers and all applications with partial access?."),
+                        new Paragraph(PluginTexts.LogoutOthersIntro),
                         new BigServerActionButton(
-                            "Yes, log them out",
-                            [],
+                            CommonTexts.Continue,
+                            PluginTexts.ThisStaysLoggedIn,
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutOthersAsync(actionReq);
                                 page.Navigate(".");
                             }
                         ),
-                        new BigLinkButton("Back to account", [], ".")
+                        new BigLinkButton(
+                            CommonTexts.Back,
+                            PluginTexts.AllStayLoggedIn,
+                            "."
+                        )
                     ]
                 )
             ]

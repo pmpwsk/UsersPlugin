@@ -18,15 +18,15 @@ public partial class UsersPlugin
         if (await req.UserTable.VerifyMailAsync(user.Id, code, req))
             return new Page(
                 req, false,
-                "Verified",
+                PluginTexts.Verified,
                 [
                     new Section(
-                        "Verified",
+                        PluginTexts.Verified,
                         [
                             new Subsection(
                                 null,
                                 [
-                                    new Paragraph("You have successfully verified your email address.")
+                                    new Paragraph(PluginTexts.VerifiedIntro)
                                 ]
                             )
                         ]
@@ -36,15 +36,15 @@ public partial class UsersPlugin
         else
             return new Page(
                 req, false,
-                "Invalid link",
+                PluginTexts.InvalidLink,
                 [
                     new Section(
-                        "Invalid link",
+                        PluginTexts.InvalidLink,
                         [
                             new Subsection(
                                 null,
                                 [
-                                    new Paragraph("This email verification link is invalid.")
+                                    new Paragraph(PluginTexts.InvalidLinkIntro)
                                 ]
                             )
                         ]

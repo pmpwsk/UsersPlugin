@@ -1,4 +1,5 @@
 using uwap.WebFramework.Accounts;
+using uwap.WebFramework.Localization;
 using uwap.WebFramework.Responses;
 using uwap.WebFramework.Responses.Actions;
 using uwap.WebFramework.Responses.DefaultUI;
@@ -21,19 +22,19 @@ public partial class UsersPlugin
             case LoginState.NeedsMailVerification:
                 return new RedirectResponse("verify" + req.CurrentRedirectQuery);
         }
-        var page = new Page(req, true, "Login");
+        var page = new Page(req, true, CommonTexts.Login);
         page.Sidebar.Items.ReplaceAll(LoginSidebar(req));
         page.Sections.Add(new(
-            "Login",
+            CommonTexts.Login,
             [
                 new ServerForm(
                     null,
                     [
-                        new Heading3("Username"),
-                        new TextBox("username", "Enter your username...", null, TextBoxRole.Username) { Autofocus = true }
+                        new Heading3(CommonTexts.Username),
+                        new TextBox("username", CommonTexts.UsernamePlaceholder, null, TextBoxRole.Username) { Autofocus = true }
                             .Save(out var usernameInput),
-                        new Heading3("Password"),
-                        new TextBox("password", "Enter your password...", null, TextBoxRole.CurrentPassword)
+                        new Heading3(CommonTexts.Password),
+                        new TextBox("password", CommonTexts.PasswordPlaceholder, null, TextBoxRole.CurrentPassword)
                             .Save(out var passwordInput),
                         new ContinueButton()
                     ],
@@ -43,11 +44,11 @@ public partial class UsersPlugin
                             page.Navigate(req.RedirectUrl);
                         
                         if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
-                            throw new ForcedActionError("Please enter your username and password.");
+                            throw new ForcedActionError(CommonTexts.EmptyFields);
                         
                         User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
                         if (user == null)
-                            throw new ForcedActionError("The combination of username and password you have entered isn't correct.");
+                            throw new ForcedActionError(PluginTexts.WrongLogin);
                         
                         if (user.Settings.ContainsKey("Delete"))
                             await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
@@ -55,7 +56,7 @@ public partial class UsersPlugin
                             page.Navigate("2fa" + req.CurrentRedirectQuery);
                         else
                         {
-                            await Presets.WarningMailAsync(actionReq, user, "New login", "Someone just successfully logged into your account.");
+                            await Presets.WarningMailAsync(actionReq, user, PluginTexts.NewLogin, PluginTexts.NewLoginMail);
                             if (user.MailToken == null)
                                 page.Navigate(req.RedirectUrl);
                             else
@@ -66,8 +67,16 @@ public partial class UsersPlugin
                 new Subsection(
                     null,
                     [
-                        new BigLinkButton(new("bi bi-life-preserver", "Account recovery"), "Can't access your account?", "recovery" + req.CurrentRedirectQuery),
-                        new BigLinkButton(new ("bi bi-person-vcard", "Register instead"), "Don't have an account yet?", "register" + req.CurrentRedirectQuery)
+                        new BigLinkButton(
+                            PluginTexts.AccountRecovery,
+                            PluginTexts.AccountRecoveryDescription,
+                            $"recovery{req.CurrentRedirectQuery}"
+                        ),
+                        new BigLinkButton(
+                            PluginTexts.RegisterInstead,
+                            PluginTexts.RegisterInsteadDescription,
+                            $"register{req.CurrentRedirectQuery}"
+                        )
                     ]
                 )
             ]
