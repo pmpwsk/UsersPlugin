@@ -34,7 +34,7 @@ public partial class UsersPlugin
                         if (!await Presets.ValidateAuth(actionReq, auth))
                             throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
                         
-                        if (req.Cookies.CanWrite)
+                        if (actionReq.Cookies.CanWrite)
                             await actionReq.Cookies.DeleteAsync("AuthToken");
                         await actionReq.UserTable.DeleteAllTokensAsync(actionReq.User.Id);
                         await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
