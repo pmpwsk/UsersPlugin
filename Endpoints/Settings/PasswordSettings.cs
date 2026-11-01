@@ -20,7 +20,7 @@ public partial class UsersPlugin
                     [
                         new Paragraph(PluginTexts.WarningOthersStayLoggedIn),
                         new Heading3(PluginTexts.NewPassword),
-                        new TextBox("password1", PluginTexts.NewPasswordPlaceholder, null, TextBoxRole.NewPassword) { Autofocus = true }
+                        new TextBox("password1", PluginTexts.NewPasswordPlaceholder, null, TextBoxRole.NewPassword, true)
                             .Save(out var passwordInput1),
                         new Heading3(PluginTexts.NewPasswordAgain),
                         new TextBox("password2", PluginTexts.NewPasswordAgainPlaceholder, null, TextBoxRole.NewPassword)

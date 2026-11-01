@@ -49,7 +49,7 @@ public partial class UsersPlugin
                         null,
                         [
                             new Heading3(PluginTexts.MailVerificationCode),
-                            new TextBox("code", PluginTexts.CodePlaceholder, null, TextBoxRole.NoSpellcheck) { Autofocus = true }
+                            new TextBox("code", PluginTexts.CodePlaceholder, null, TextBoxRole.NoSpellcheck, true)
                                 .Save(out var codeInput),
                             new ContinueButton()
                         ],
@@ -100,7 +100,7 @@ public partial class UsersPlugin
                         [
                             new Paragraph($"{CommonTexts.Current}: {req.User.MailAddress}"),
                             new Heading3(PluginTexts.NewMail),
-                            new TextBox("email", PluginTexts.NewMailPlaceholder, null, TextBoxRole.Email) { Autofocus = true }
+                            new TextBox("email", PluginTexts.NewMailPlaceholder, null, TextBoxRole.Email, true)
                                 .Save(out var emailInput),
                             ..Presets.CreateAuthElements(req)
                                 .Save(out var auth).Elements,

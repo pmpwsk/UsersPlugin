@@ -32,7 +32,7 @@ public partial class UsersPlugin
                     [
                         new Paragraph(PluginTexts.PasswordRecoveryIntro),
                         new Heading3(CommonTexts.Mail),
-                        new TextBox("email", CommonTexts.MailPlaceholder, null, TextBoxRole.Email) { Autofocus = true }
+                        new TextBox("email", CommonTexts.MailPlaceholder, null, TextBoxRole.Email, true)
                             .Save(out var emailInput),
                         new ContinueButton()
                     ],

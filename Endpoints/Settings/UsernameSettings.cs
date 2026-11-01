@@ -21,7 +21,7 @@ public partial class UsersPlugin
                         new Paragraph(PluginTexts.WarningOthersStayLoggedIn),
                         new Paragraph($"{CommonTexts.Current}: {req.User.Username}"),
                         new Heading3(PluginTexts.NewUsername),
-                        new TextBox("username", PluginTexts.NewUsernamePlaceholder, null, TextBoxRole.Username) { Autofocus = true }
+                        new TextBox("username", PluginTexts.NewUsernamePlaceholder, null, TextBoxRole.Username, true)
                             .Save(out var usernameInput),
                         ..Presets.CreateAuthElements(req)
                             .Save(out var auth).Elements,

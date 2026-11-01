@@ -34,7 +34,7 @@ public partial class UsersPlugin
                     null,
                     [
                         new Heading3(CommonTexts.TwoFactorOrRecovery),
-                        new TextBox("code", CommonTexts.TwoFactorPlaceholder, null, TextBoxRole.NoSpellcheck) { Autofocus = true }
+                        new TextBox("code", CommonTexts.TwoFactorPlaceholder, null, TextBoxRole.NoSpellcheck, true)
                             .Save(out var codeInput),
                         new ContinueButton()
                     ],

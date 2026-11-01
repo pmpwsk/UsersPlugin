@@ -31,7 +31,7 @@ public partial class UsersPlugin
                     null,
                     [
                         new Heading3(CommonTexts.Username),
-                        new TextBox("username", CommonTexts.UsernamePlaceholder, null, TextBoxRole.Username) { Autofocus = true }
+                        new TextBox("username", CommonTexts.UsernamePlaceholder, null, TextBoxRole.Username, true)
                             .Save(out var usernameInput),
                         new Heading3(CommonTexts.Password),
                         new TextBox("password", CommonTexts.PasswordPlaceholder, null, TextBoxRole.CurrentPassword)
