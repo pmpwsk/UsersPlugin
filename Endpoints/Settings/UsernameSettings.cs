@@ -32,8 +32,7 @@ public partial class UsersPlugin
                         if (!actionReq.LoggedIn)
                             throw new ForcedActionReload();
                         
-                        if (usernameInput.IsEmpty(out var username) || auth.AnyEmpty)
-                            throw new ForcedActionError(CommonTexts.EmptyFields);
+                        var username = usernameInput.Value;
     
                         if (!await Presets.ValidateAuth(actionReq, auth))
                             throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);

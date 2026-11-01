@@ -30,15 +30,9 @@ public partial class UsersPlugin
                         ],
                         async actionReq =>
                         {
-                            if (!actionReq.LoggedIn)
+                            if (!actionReq.LoggedIn || req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
                                 throw new ForcedActionReload();
-                            
-                            if (auth.AnyEmpty)
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
-                            
-                            if (req.User.TwoFactor.TOTP == null || !req.User.TwoFactor.TOTP.Verified)
-                                throw new ForcedActionReload();
-                            
+
                             if (!await Presets.ValidateAuth(actionReq, auth))
                                 throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);
                             
@@ -98,8 +92,7 @@ public partial class UsersPlugin
                             if (!actionReq.LoggedIn)
                                 throw new ForcedActionReload();
                             
-                            if (codeInput.IsEmpty(out var code) || auth.AnyEmpty)
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                            var code = codeInput.Value;
                             
                             if (actionReq.User.TwoFactor.TOTP == null || actionReq.User.TwoFactor.TOTP.Verified)
                                 throw new ForcedActionReload();

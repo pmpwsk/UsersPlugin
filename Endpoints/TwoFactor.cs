@@ -42,8 +42,7 @@ public partial class UsersPlugin
                     {
                         if (actionReq.LoginState == LoginState.Needs2FA && actionReq.User.TwoFactor.TOTPEnabled())
                         {
-                            if (codeInput.IsEmpty(out var code))
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                            var code = codeInput.Value;
                             
                             if (!await actionReq.UserTable.ValidateTOTPAsync(actionReq.User.Id, code, actionReq, true))
                                 throw new ForcedActionError(PluginTexts.CodeInvalid);

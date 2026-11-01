@@ -34,8 +34,8 @@ public partial class UsersPlugin
                         if (!actionReq.LoggedIn)
                             throw new ForcedActionReload();
                         
-                        if (passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2) || auth.AnyEmpty)
-                            throw new ForcedActionError(CommonTexts.EmptyFields);
+                        var password1 = passwordInput1.Value;
+                        var password2 = passwordInput2.Value;
                         
                         if (password1 != password2)
                             throw new ForcedActionError(PluginTexts.NewPasswordsUnequal);

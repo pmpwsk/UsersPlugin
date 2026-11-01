@@ -42,9 +42,7 @@ public partial class UsersPlugin
                     {
                         if (actionReq.HasUser && actionReq.User.MailToken != null)
                         {
-                            if (emailInput.IsEmpty(out var email))
-                                throw new ForcedActionError(CommonTexts.MailEmpty);
-                            
+                            var email = emailInput.Value;
                             try
                             {
                                 await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, email);

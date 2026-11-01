@@ -40,9 +40,7 @@ public partial class UsersPlugin
                     {
                         if (!actionReq.HasUser)
                         {
-                            if (emailInput.IsEmpty(out var email))
-                                throw new ForcedActionError(CommonTexts.MailEmpty);
-
+                            var email = emailInput.Value;
                             User? user = await actionReq.UserTable.FindByMailAddressAsync(email);
                             if (user == null)
                             {

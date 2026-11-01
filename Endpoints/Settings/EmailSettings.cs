@@ -58,8 +58,7 @@ public partial class UsersPlugin
                             if (!actionReq.LoggedIn)
                                 throw new ForcedActionReload();
                             
-                            if (codeInput.IsEmpty(out var code))
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                            var code = codeInput.Value;
 
                             if (!actionReq.User.Settings.TryGetValue("EmailChange", out settingRaw))
                                 throw new ForcedActionReload();
@@ -111,8 +110,7 @@ public partial class UsersPlugin
                             if (!actionReq.LoggedIn)
                                 throw new ForcedActionReload();
                             
-                            if (emailInput.IsEmpty(out var email) || auth.AnyEmpty)
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                            var email = emailInput.Value;
                             
                             if (!await Presets.ValidateAuth(actionReq, auth))
                                 throw new ForcedActionError(auth.CodeInput != null ? PluginTexts.WrongAuthWith2FA : PluginTexts.WrongAuthWithout2FA);

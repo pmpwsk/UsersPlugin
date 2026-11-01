@@ -48,8 +48,10 @@ public partial class UsersPlugin
                     {
                         if (!actionReq.HasUser)
                         {
-                            if (usernameInput.IsEmpty(out var username) || emailInput.IsEmpty(out var email) || passwordInput1.IsEmpty(out var password1) || passwordInput2.IsEmpty(out var password2))
-                                throw new ForcedActionError(CommonTexts.EmptyFields);
+                            var username = usernameInput.Value;
+                            var email = emailInput.Value;
+                            var password1 = passwordInput1.Value;
+                            var password2 = passwordInput2.Value;
                             
                             if (password1 != password2)
                                 throw new ForcedActionError(PluginTexts.NewPasswordsUnequal);

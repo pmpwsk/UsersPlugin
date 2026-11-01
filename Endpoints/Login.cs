@@ -43,8 +43,8 @@ public partial class UsersPlugin
                         if (actionReq.HasUser)
                             await page.NavigateAsync(req.RedirectUrl);
                         
-                        if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
-                            throw new ForcedActionError(CommonTexts.EmptyFields);
+                        var username = usernameInput.Value;
+                        var password = passwordInput.Value;
                         
                         User? user = await actionReq.UserTable.LoginAsync(username, password, actionReq);
                         if (user == null)

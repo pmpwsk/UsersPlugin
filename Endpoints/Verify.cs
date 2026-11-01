@@ -55,8 +55,7 @@ public partial class UsersPlugin
                     ],
                     async actionReq =>
                     {
-                        if (codeInput.IsEmpty(out var code))
-                            throw new ForcedActionError(CommonTexts.EmptyFields);
+                        var code = codeInput.Value;
 
                         if (actionReq.HasUser && actionReq.User.MailToken != null
                             && !await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
