@@ -51,7 +51,7 @@ public partial class UsersPlugin
                             await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.NewLogin, PluginTexts.NewLoginMail);
                         }
                         
-                        page.Navigate(req.RedirectUrl);
+                        await page.NavigateAsync(req.RedirectUrl);
                     }
                 ),
                 new Subsection(
@@ -63,7 +63,7 @@ public partial class UsersPlugin
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutAsync(actionReq);
-                                page.Navigate(req.RedirectUrl);
+                                await page.NavigateAsync(req.RedirectUrl);
                             }
                         )
                     ]

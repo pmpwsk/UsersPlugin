@@ -52,7 +52,7 @@ public partial class UsersPlugin
                             await Presets.WarningMailAsync(actionReq, user, PluginTexts.UsernameRecovery, $"{PluginTexts.UsernameRecoveryMail} {user.Username}");
                         }
 
-                        page.Navigate("../login" + req.CurrentRedirectQuery);
+                        await page.NavigateAsync("../login" + req.CurrentRedirectQuery);
                     }
                 )
             ]

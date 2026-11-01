@@ -56,7 +56,7 @@ public partial class UsersPlugin
                             await Presets.WarningMailAsync(actionReq, user, PluginTexts.PasswordRecovery, $"{PluginTexts.PasswordRecoveryMail1}\n<a href=\"{url}\">{url}</a>\n{PluginTexts.PasswordRecoveryMail2}");
                         }
 
-                        page.Navigate("../login" + req.CurrentRedirectQuery);
+                        await page.NavigateAsync("../login" + req.CurrentRedirectQuery);
                     }
                 )
             ]

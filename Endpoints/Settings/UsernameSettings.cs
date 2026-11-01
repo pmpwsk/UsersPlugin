@@ -42,7 +42,7 @@ public partial class UsersPlugin
                         {
                             await actionReq.UserTable.SetUsernameAsync(actionReq.User.Id, username);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.UsernameChanged, $"{PluginTexts.UsernameChangedMail1}{username}{PluginTexts.UsernameChangedMail2}");
-                            page.Navigate("../settings");
+                            await page.NavigateAsync("../settings");
                         }
                         catch (Exception ex)
                         {

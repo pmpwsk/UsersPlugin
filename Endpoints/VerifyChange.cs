@@ -57,7 +57,7 @@ public partial class UsersPlugin
                             }
                         }
                         
-                        page.Navigate("verify");
+                        await page.NavigateAsync("verify");
                     }
                 )
             ]

@@ -65,7 +65,7 @@ public partial class UsersPlugin
                             }
                         }
                             
-                        page.Navigate("verify" + req.CurrentRedirectQuery);
+                        await page.NavigateAsync("verify" + req.CurrentRedirectQuery);
                     }
                 ),
                 new Subsection(

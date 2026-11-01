@@ -48,7 +48,7 @@ public partial class UsersPlugin
                                                 async actionReq =>
                                                 {
                                                     await actionReq.UserTable.DeleteTokenAsync(actionReq.User.Id, a.Key);
-                                                    page.Reload();
+                                                    await page.ReloadAsync();
                                                 }
                                             )),
                                             new SubmitButton(CommonTexts.Back)

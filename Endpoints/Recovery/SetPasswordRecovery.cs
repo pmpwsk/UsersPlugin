@@ -69,7 +69,7 @@ public partial class UsersPlugin
                             }
                         }
 
-                        page.Navigate("../login" + req.CurrentRedirectQuery);
+                        await page.NavigateAsync("../login" + req.CurrentRedirectQuery);
                     }
                 )
             ]

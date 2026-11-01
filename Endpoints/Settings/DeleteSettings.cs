@@ -39,7 +39,7 @@ public partial class UsersPlugin
                         await actionReq.UserTable.DeleteAllTokensAsync(actionReq.User.Id);
                         await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "Delete", DateTime.UtcNow.Ticks.ToString());
                         await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.AccountDeleted, PluginTexts.AccountDeletedMail);
-                        page.Navigate("/");
+                        await page.NavigateAsync("/");
                     }
                 )
             ]

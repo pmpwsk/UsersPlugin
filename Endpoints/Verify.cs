@@ -62,7 +62,7 @@ public partial class UsersPlugin
                             && !await req.UserTable.VerifyMailAsync(actionReq.User.Id, code, actionReq))
                             throw new ForcedActionError(PluginTexts.CodeInvalid);
                         
-                        page.Navigate(req.RedirectUrl);
+                        await page.NavigateAsync(req.RedirectUrl);
                     }
                 ),
                 new Subsection(
@@ -79,7 +79,7 @@ public partial class UsersPlugin
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutAsync(actionReq);
-                                page.Navigate(req.RedirectUrl);
+                                await page.NavigateAsync(req.RedirectUrl);
                             }
                         )
                     ]

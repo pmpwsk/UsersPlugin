@@ -30,7 +30,7 @@ public partial class UsersPlugin
                                 if (!actionReq.LoggedIn)
                                     throw new ForcedActionReload();
                                 await req.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
-                                page.Reload();
+                                await page.ReloadAsync();
                             }),
                             new ServerActionButton(PluginTexts.Resend, async actionReq =>
                             {
@@ -79,7 +79,7 @@ public partial class UsersPlugin
                                 await actionReq.UserTable.SetMailAddressAsync(actionReq.User.Id, mail);
                                 await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.MailChange, $"{PluginTexts.MailChangedMail1}{mail}{PluginTexts.MailChangedMail2}", oldMail);
                                 await actionReq.UserTable.DeleteSettingAsync(actionReq.User.Id, "EmailChange");
-                                page.Navigate("../settings");
+                                await page.NavigateAsync("../settings");
                             }
                             catch (Exception ex)
                             {
@@ -129,7 +129,7 @@ public partial class UsersPlugin
                             string code = Parsers.RandomString(10);
                             await actionReq.UserTable.SetSettingAsync(actionReq.User.Id, "EmailChange", $"{HttpUtility.UrlEncode(email)}&{code}");
                             await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.MailChange, $"{PluginTexts.MailChangeMail} {code}", email);
-                            page.Navigate("email");
+                            await page.NavigateAsync("email");
                         }
                     )
                 ]

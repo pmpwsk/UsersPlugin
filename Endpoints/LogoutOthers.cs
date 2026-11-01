@@ -25,7 +25,7 @@ public partial class UsersPlugin
                             async actionReq =>
                             {
                                 await actionReq.UserTable.LogoutOthersAsync(actionReq);
-                                page.Navigate(".");
+                                await page.NavigateAsync(".");
                             }
                         ),
                         new BigLinkButton(

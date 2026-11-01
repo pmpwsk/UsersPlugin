@@ -47,7 +47,7 @@ public partial class UsersPlugin
                         {
                             await req.UserTable.SetPasswordAsync(req.User.Id, password1);
                             await Presets.WarningMailAsync(req, req.User, PluginTexts.PasswordChanged, "Your password was just changed.");
-                            page.Navigate("../settings");
+                            await page.NavigateAsync("../settings");
                         }
                         catch (Exception ex)
                         {

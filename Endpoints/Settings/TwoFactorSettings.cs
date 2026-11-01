@@ -44,7 +44,7 @@ public partial class UsersPlugin
                             
                             await req.UserTable.DisableTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.TwoFactorDisabled, PluginTexts.TwoFactorDisabledMail);
-                            page.Navigate("../settings");
+                            await page.NavigateAsync("../settings");
                         }
                     )
                 ]
@@ -112,7 +112,7 @@ public partial class UsersPlugin
                             
                             await actionReq.UserTable.VerifyTOTPAsync(actionReq.User.Id);
                             await Presets.WarningMailAsync(actionReq, actionReq.User, PluginTexts.TwoFactorEnabled, PluginTexts.TwoFactorEnabledMail);
-                            page.Navigate("../settings");
+                            await page.NavigateAsync("../settings");
                         }
                     )
                 ]

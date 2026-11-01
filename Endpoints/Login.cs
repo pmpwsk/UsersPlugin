@@ -41,7 +41,7 @@ public partial class UsersPlugin
                     async actionReq =>
                     {
                         if (actionReq.HasUser)
-                            page.Navigate(req.RedirectUrl);
+                            await page.NavigateAsync(req.RedirectUrl);
                         
                         if (usernameInput.IsEmpty(out var username) || passwordInput.IsEmpty(out var password))
                             throw new ForcedActionError(CommonTexts.EmptyFields);
@@ -53,14 +53,14 @@ public partial class UsersPlugin
                         if (user.Settings.ContainsKey("Delete"))
                             await actionReq.UserTable.DeleteSettingAsync(user.Id, "Delete");
                         if (user.TwoFactor.TOTPEnabled())
-                            page.Navigate("2fa" + req.CurrentRedirectQuery);
+                            await page.NavigateAsync("2fa" + req.CurrentRedirectQuery);
                         else
                         {
                             await Presets.WarningMailAsync(actionReq, user, PluginTexts.NewLogin, PluginTexts.NewLoginMail);
                             if (user.MailToken == null)
-                                page.Navigate(req.RedirectUrl);
+                                await page.NavigateAsync(req.RedirectUrl);
                             else
-                                page.Navigate("verify" + req.CurrentRedirectQuery);
+                                await page.NavigateAsync("verify" + req.CurrentRedirectQuery);
                         }
                     }
                 ),
