@@ -51,10 +51,10 @@ public partial class UsersPlugin
                                                     await page.ReloadAsync();
                                                 }
                                             )),
-                                            new SubmitButton(CommonTexts.Back)
+                                            new DialogBackButton(page)
                                         )
                                     ],
-                                    _ => DialogBuilder.Close(page)
+                                    _ => {}
                                 )
                             ) ],
                             () => [ new Paragraph(PluginTexts.NoApplications) ]
